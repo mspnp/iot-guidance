@@ -1,0 +1,7 @@
+﻿<coordinator-app name="dronedelivery_coldprocessing_coord_app" frequency="${coordFrequency}" xmlns="uri:oozie:coordinator:0.4">
+  <action>
+    <workflow>
+      <app-path>${workflowPath}</app-path>
+    </workflow>
+  </action>
+</coordinator-app>

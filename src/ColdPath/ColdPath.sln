@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2005
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{81BE5007-4CAB-4670-AEEB-3DA6572B9D12}") = "HiveApplication", "HiveApplication\HiveApplication.hiveproj", "{447FA629-3A96-46AE-8B11-5CE92F46AE92}"
+EndProject
+Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "ColdPathDeployment", "ColdPathDeployment\ColdPathDeployment.deployproj", "{D46E5237-B61A-4481-9DE5-5CCC45A68A57}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{447FA629-3A96-46AE-8B11-5CE92F46AE92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{447FA629-3A96-46AE-8B11-5CE92F46AE92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{447FA629-3A96-46AE-8B11-5CE92F46AE92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{447FA629-3A96-46AE-8B11-5CE92F46AE92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D46E5237-B61A-4481-9DE5-5CCC45A68A57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D46E5237-B61A-4481-9DE5-5CCC45A68A57}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D46E5237-B61A-4481-9DE5-5CCC45A68A57}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D46E5237-B61A-4481-9DE5-5CCC45A68A57}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BCE7381B-0D6B-4839-B0B9-6C13011642F6}
+	EndGlobalSection
+EndGlobal

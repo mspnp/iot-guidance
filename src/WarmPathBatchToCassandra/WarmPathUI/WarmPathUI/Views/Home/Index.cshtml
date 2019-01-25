@@ -1,0 +1,158 @@
+﻿
+@inject IOptions<ApplicationOptions> OptionsAccessor
+
+<div id="map"></div>
+
+@section Scripts
+    {
+    <script>
+        var subscriptionKey = "@OptionsAccessor.Value.LocationServicesKey";
+
+        // Starting point for map center
+        var geoPosition = [-122.205986, 47.67689];
+
+        var map = new atlas.Map("map", {
+            "subscription-key": subscriptionKey,
+            center: geoPosition,
+            zoom: 12
+        });
+
+
+        var devicesLayerName = "device-pins";
+        var devicesPopup = new atlas.Popup();
+        var selectedDeviceName = null;
+
+        var getMapPins = function (responseHandler) {
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = responseHandler;
+
+            var bounds = map.getCamera().bounds;
+
+            var url = "/api/devices";
+            url += '?swLon=' + bounds[0] + '&swLat=' + bounds[1] + '&neLon=' + bounds[2] + '&neLat=' + bounds[3];
+
+            xhttp.open("GET", url, true);
+            xhttp.send();
+
+        }
+
+        function getMapPinsHandler() {
+            if (this.readyState === 4 && this.status === 200) {
+                var response = JSON.parse(this.responseText);
+
+                var pins = [];
+                for (var i = 0; i < response.length; i++) {
+                    var device = response[i];
+                    var pin = new atlas.data.Feature(new atlas.data.Point([device.location.x, device.location.y]), {
+                        name: device.id
+                    });
+                    pins.push(pin);
+
+                    // Update position of the popup
+                    if (device.id == selectedDeviceName) {
+                        showPopup(pin);
+                    }
+                }
+
+                map.removeLayers([devicesLayerName]);
+                map.addPins(pins, {
+                    name: devicesLayerName,
+                    cluster: false,
+                    icon: "pin-round-darkblue"
+                });
+
+            }
+        }
+
+        function boundingBoxOfPositions(positions) {
+            var swLon = 180;
+            var swLat = 90;
+            var neLon = -180;
+            var neLat = -90;
+
+            for (i = 0; i < positions.length; i++) {
+                var position = positions[i];
+
+                if (position[0] < swLon) {
+                    swLon = position[0];
+                }
+
+                if (position[1] < swLat) {
+                    swLat = position[1];
+                }
+
+                if (position[0] > neLon) {
+                    neLon = position[0];
+                }
+
+                if (position[1] > neLat) {
+                    neLat = position[1];
+                }
+            }
+
+            return [swLon, swLat, neLon, neLat];
+        }
+
+        function buildPoiPopupContent(name) {
+            var poiTitleBox = document.createElement("div");
+            poiTitleBox.classList.add("poi-title-box", "font-segoeui-b");
+            poiTitleBox.innerText = name || "UNKNOWN";
+
+            var poiInfoBox = document.createElement("div");
+            poiInfoBox.classList.add("poi-info-box", "font-segoeui");
+
+            var poiContentBox = document.createElement("div");
+            poiContentBox.classList.add("poi-content-box");
+            poiContentBox.appendChild(poiTitleBox);
+            poiContentBox.appendChild(poiInfoBox);
+
+            return poiContentBox;
+        }
+
+        function showPopup(pin) {
+            devicesPopup.setPopupOptions({
+                position: pin.geometry.coordinates,
+                content: buildPoiPopupContent(pin.properties.name)
+            });
+            devicesPopup.open(map);
+        }
+
+        map.addEventListener("click", devicesLayerName, function (event) {
+            var pin = event.features[0];
+            showPopup(pin);
+            selectedDeviceName = pin.properties.name;
+        });
+
+
+        // Logic For Zoom In Button
+        var plusZoomElement = document.createElement("div");
+        plusZoomElement.classList.add("zoom", "font-segoeui-b");
+        plusZoomElement.id = "zoom-plus";
+        plusZoomElement.innerText = "+";
+        document.body.appendChild(plusZoomElement);
+        plusZoomElement.addEventListener("click", function (event) {
+            var currZoom = map.getCamera().zoom;
+            map.setCamera({
+                zoom: currZoom + 1
+            });
+        });
+
+        // Logic For Zoom Out Button
+        var minusZoomElement = document.createElement("div");
+        minusZoomElement.classList.add("zoom", "font-segoeui-b");
+        minusZoomElement.id = "zoom-minus";
+        minusZoomElement.innerText = "-";
+        document.body.appendChild(minusZoomElement);
+        minusZoomElement.addEventListener("click", function (event) {
+            var currZoom = map.getCamera().zoom;
+            map.setCamera({
+                zoom: currZoom - 1
+            });
+        });
+
+        // Start the timer that refreshes the pins
+        var timerId = setInterval(() => getMapPins(getMapPinsHandler), 5000);
+
+    </script>
+}

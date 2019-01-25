@@ -1,0 +1,75 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+   "DataLocale": {
+      "value": "en-US"
+    },
+    "OutputErrorPolicy": {
+      "value": "Drop"
+    },
+    "EventsLateArrivalMaxDelayInSeconds": {
+      "value": 5
+    },
+    "EventsOutOfOrderMaxDelayInSeconds": {
+      "value": 5
+    },
+    "EventsOutOfOrderPolicy": {
+      "value": "Drop"
+    },
+    "StreamingUnits": {
+      "value": 60
+    },
+    "CompatibilityLevel": {
+      "value": "1.0"
+    },
+   "Input_droneTelemetry_iotHubNamespace": {
+     "value": "drone-performer-hub"
+   },
+   "Input_droneTelemetry_iotHubResourceGroup": {
+     "value": "drone-performer-hub"
+   },
+    "Input_droneTelemetry_consumerGroupName": {
+      "value": "$Default"
+    },
+    "Input_droneTelemetry_sharedAccessPolicyName": {
+      "value": "iothubowner"
+    },
+    "Input_droneTelemetry_sharedAccessPolicyKey": {
+      "value": ""
+    },
+    "Output_functionAppName": {
+      "value": "functionAppName"
+    },
+    "Output_functionName": {
+      "value": "HotTelemetry"
+    },
+    "Output_function_apiKey": {
+      "value": ""
+    },
+    "Output_function_maxBatchCount": {
+      "value": 100
+    },
+    "Output_cosmos_accountId": {
+      "value": ""
+    },
+    "Output_cosmos_accountKey": {
+      "value": ""
+    },
+    "Output_cosmos_database": {
+      "value": "hottelemetrydb"
+    },
+    "Output_AbsenceTelemetry_collectionNamePattern": {
+      "value": "absencetelemetrycol"
+    },
+    "Output_cosmos_documentId": {
+      "value": "deliveryid"
+    },
+    "Output_HotTelemetry_collectionNamePattern": {
+      "value": "hottelemetrycol"
+    },
+    "AppInsightsNameInFunctionApp": {
+      "value": ""
+    }
+  }
+}

@@ -1,0 +1,23 @@
+﻿{
+  "EventHubProperties": null,
+  "BlobStorageProperties": null,
+  "SQLDatabaseProperties": null,
+  "TableStorageProperties": null,
+  "ServiceBusQueueProperties": null,
+  "ServiceBusTopicProperties": null,
+  "DocumentDbProperties": null,
+  "PowellBIProperties": null,
+  "AzureDataLakeStoreProperties": null,
+  "AzureFunctionProperties": {
+    "FunctionAppName": "dronefunctionappname",
+    "FunctionName": "dronefunctionName",
+    "ApiKey": null,
+    "MaxBatchSize": null,
+    "MaxBatchCount": 100
+  },
+  "DataSourceCredentialDomain": "18315aec-1505-4d3f-a836-6c8bb3d7b5a2.StreamAnalyticsCredential",
+  "Name": "AlertNoTelemetry",
+  "DataSourceType": "Azure Function",
+  "Serialization": null,
+  "ScriptType": "Output"
+}

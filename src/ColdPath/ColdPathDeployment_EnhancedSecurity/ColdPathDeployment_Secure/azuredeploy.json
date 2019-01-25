@@ -1,0 +1,1277 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+  "contentVersion": "0.9.0.0",
+  "parameters": {
+    "clusterName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the HDInsight cluster to create."
+      }
+    },
+    "clusterLoginUserName": {
+      "type": "string",
+      "defaultValue": "admin",
+      "metadata": {
+        "description": "These credentials can be used to submit jobs to the cluster and to log into cluster dashboards."
+      }
+    },
+    "clusterLoginPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password must be at least 10 characters in length and must contain at least one digit, one non-alphanumeric character, and one upper or lower case letter."
+      }
+    },
+    "IotHubName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the existing IoT Hub created for this Reference Implementation."
+      }
+    },
+    "IotHubResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "The Resource Group of the existing IoT Hub created for this Reference Implementation."
+      }
+    }
+  },
+  "variables": {
+    "metaDataStorageAccountName": "[concat('hdimetadata', uniqueString(subscription().subscriptionId, resourceGroup().id))]",
+    "telemetryStorageAccountName": "[concat('telemetry', uniqueString(subscription().subscriptionId, resourceGroup().id))]",
+    "dashboardName":  "Cold Path - Dashboard",
+    "dashboardID": "[concat('dashboard', uniquestring(variables('dashboardName'), subscription().subscriptionId, resourceGroup().id))]",
+    "vnet": {
+      "name": "dronedelivery-coldpath-vnet",
+      "addressSpacePrefix": "10.0.0.0/16",
+      "subnetName": "dronedelivery-coldpath-subnet",
+      "subnetPrefix": "10.0.0.0/24"
+    },
+    "nsg": {
+      "name": "dronedelivery-coldpath-nsg"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[variables('nsg').name]",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "hdirule1",
+            "properties": {
+              "description": null,
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "168.61.49.99",
+              "destinationAddressPrefix": "VirtualNetwork",
+              "access": "Allow",
+              "priority": 300,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "hdirule2",
+            "properties": {
+              "description": null,
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "23.99.5.239",
+              "destinationAddressPrefix": "VirtualNetwork",
+              "access": "Allow",
+              "priority": 301,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "hdirule3",
+            "properties": {
+              "description": null,
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "168.61.48.131",
+              "destinationAddressPrefix": "VirtualNetwork",
+              "access": "Allow",
+              "priority": 302,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "hdirule4",
+            "properties": {
+              "description": null,
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "138.91.141.162",
+              "destinationAddressPrefix": "VirtualNetwork",
+              "access": "Allow",
+              "priority": 303,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('vnet').name]",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-12-01",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkSecurityGroups/', variables('nsg').name)]"
+      ],
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('vnet').addressSpacePrefix]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('vnet').subnetName]",
+            "properties": {
+              "addressPrefix": "[variables('vnet').subnetPrefix]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg').name)]"
+              },
+              "serviceEndpoints": [
+                {
+                  "service": "Microsoft.Storage",
+                  "locations": [
+                    "[resourceGroup().location]"
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "2017-10-01",
+      "name": "[variables('telemetryStorageAccountName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/',variables('vnet').name)]"
+      ],
+      "type": "Microsoft.Storage/storageAccounts",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "Storage",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow",
+          "virtualNetworkRules": [
+            {
+              "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name), '/subnets/', variables('vnet').subnetName)]",
+              "action": "Allow"
+            }
+          ]
+        },			
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        }
+      }
+    },
+    {
+      "apiVersion": "2017-10-01",
+      "name": "[variables('metaDataStorageAccountName')]",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/virtualNetworks/',variables('vnet').name)]"
+      ],       
+      "type": "Microsoft.Storage/storageAccounts",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "Storage",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "Allow",
+          "virtualNetworkRules": [
+            {
+              "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name), '/subnets/', variables('vnet').subnetName)]",
+              "action": "Allow"
+            }
+          ]
+        },
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        }
+      }
+    },
+    {
+      "apiVersion": "2015-03-01-preview",
+      "name": "[parameters('clusterName')]",
+      "type": "Microsoft.HDInsight/clusters",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[variables('metaDataStorageAccountName')]",
+        "[variables('telemetryStorageAccountName')]",
+        "[concat('Microsoft.Network/virtualNetworks/',variables('vnet').name)]"
+      ],
+      "properties": {
+        "clusterVersion": "3.6",
+        "osType": "Linux",
+        "tier": "standard",
+        "clusterDefinition": {
+          "kind": "HADOOP",
+          "configurations": {
+            "gateway": {
+              "restAuthCredential.isEnabled": true,
+              "restAuthCredential.username": "[parameters('clusterLoginUserName')]",
+              "restAuthCredential.password": "[parameters('clusterLoginPassword')]"
+            }
+          }
+        },
+        "storageProfile": {
+          "storageaccounts": [
+            {
+              "name": "[concat(variables('metaDataStorageAccountName'),'.blob.core.windows.net')]",
+              "isDefault": true,
+              "container": "hdinsightmetadatacontainer",
+              "key": "[listKeys(variables('metaDataStorageAccountName'), '2015-05-01-preview').key1]"
+            },
+            {
+              "name": "[concat(variables('telemetryStorageAccountName'),'.blob.core.windows.net')]",
+              "container": "telemetry",
+              "key": "[listKeys(variables('telemetryStorageAccountName'), '2015-05-01-preview').key1]"
+            }
+          ]
+        },
+        "computeProfile": {
+          "roles": [
+            {
+              "name": "headnode",
+              "minInstanceCount": 1,
+              "targetInstanceCount": 2,
+              "hardwareProfile": {
+                "vmSize": "Standard_D12_V2"
+              },
+              "osProfile": {
+                "linuxOperatingSystemProfile": {
+                  "username": "sshuser",
+                  "password": "[parameters('clusterLoginPassword')]"
+                }
+              },
+              "virtualNetworkProfile": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name)]",
+                "subnet": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name), '/subnets/', variables('vnet').subnetName)]"
+              },
+              "scriptActions": []
+            },
+            {
+              "name": "workernode",
+              "minInstanceCount": 1,
+              "targetInstanceCount": 4,
+              "hardwareProfile": {
+                "vmSize": "Standard_D4_V2"
+              },
+              "osProfile": {
+                "linuxOperatingSystemProfile": {
+                  "username": "sshuser",
+                  "password": "[parameters('clusterLoginPassword')]"
+                }
+              },
+              "virtualNetworkProfile": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name)]",
+                "subnet": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name), '/subnets/', variables('vnet').subnetName)]"
+              },					
+              "scriptActions": []
+            },
+            {
+              "name": "zookeepernode",
+              "minInstanceCount": 1,
+              "targetInstanceCount": 3,
+              "hardwareProfile": {
+                "vmSize": "Small"
+              },
+              "osProfile": {
+                "linuxOperatingSystemProfile": {
+                  "username": "sshuser",
+                  "password": "[parameters('clusterLoginPassword')]"
+                }
+              },
+              "virtualNetworkProfile": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name)]",
+                "subnet": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnet').name), '/subnets/', variables('vnet').subnetName)]"
+              },
+              "scriptActions": []
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "[variables('dashboardID')]",
+      "type": "Microsoft.Portal/dashboards",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-08-01-preview",
+      "tags": {
+        "hidden-title": "[variables('dashboardName')]"
+      },
+      "dependsOn": ["[concat('Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]", 
+        "[concat('Microsoft.Storage/storageAccounts/', variables('metaDataStorageAccountName'))]",  
+        "[concat('Microsoft.HDInsight/clusters/', parameters('clusterName'))]",  
+        "[concat('Microsoft.Devices/IotHubs/', parameters('IotHubName'))]"],
+        "properties": {
+          "lenses": {
+            "0": {
+              "order": 0,
+              "parts": {
+                "0": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "colSpan": 10,
+                    "rowSpan": 1
+                  },
+                  "metadata": {
+                    "inputs": [],
+                    "type": "Extension[azure]/HubsExtension/PartType/MarkdownPart",
+                    "settings": {
+                      "content": {
+                        "settings": {
+                          "content": "[concat('<p style=\"font-size: 32px; color: white; background: linear-gradient(to bottom, #41705a, #376657); padding: 5px\">\n&nbsp;&nbsp;Storage - ', variables('telemetryStorageAccountName'), ' - Metrics</p>')]",
+                          "title": "",
+                          "subtitle": ""
+                        }
+                      }
+                    }
+                  }
+                },
+                "1": {
+                  "position": {
+                    "x": 10,
+                    "y": 0,
+                    "colSpan": 2,
+                    "rowSpan": 1
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "id",
+                      "value": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                    }],
+                    "type": "Extension/Microsoft_Azure_Storage/PartType/StorageAccountPart",
+                    "asset": {
+                      "idInputName": "id",
+                      "type": "StorageAccount"
+                    },
+                    "defaultMenuItemId": "overview"
+                  }
+                },
+                "2": {
+                  "position": {
+                    "x": 0,
+                    "y": 1,
+                    "colSpan": 6,
+                    "rowSpan": 4
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "options",
+                      "value": {
+                        "charts": [{
+                          "metrics": [{
+                            "name": "UsedCapacity",
+                            "resourceMetadata": {
+                              "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                            },
+                            "type": "account",
+                            "aggregationType": 1
+                          }],
+                          "title": "Avg (account) Used capacity",
+                          "timeContext": {
+                            "options": {
+                              "grain": 1,
+                              "appliedISOGrain": "PT1H"
+                            },
+                            "relative": {
+                              "duration": 86400000
+                            }
+                          },
+                          "itemDataModel": {
+                            "chartHeight": 1,
+                            "metrics": [{
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]",
+                                  "otherProps": {
+                                    "resourceIdSuffix": ""
+                                  }
+                                },
+                                "name": {
+                                  "id": "UsedCapacity",
+                                  "displayName": "Used capacity"
+                                },
+                                "kind": {
+                                  "id": "account"
+                                }
+                              },
+                              "metricAggregation": 4,
+                              "color": "#47BDF5"
+                            }],
+                            "priorPeriod": false,
+                            "horizontalBars": true,
+                            "showOther": false,
+                            "aggregation": 1,
+                            "percentage": false,
+                            "palette": "multiColor",
+                            "filters": {
+                              "filterType": 0,
+                              "OperandFilters": [],
+                              "LogicalOperator": 0
+                            },
+                            "yAxisOptions": {
+                              "options": 1
+                            },
+                            "title": "Avg (account) Used capacity",
+                            "titleKind": "Auto",
+                            "appliedISOGrain": "PT1H"
+                          }
+                        }],
+                        "v2charts": true
+                      }
+                    },
+                    {
+                      "name": "sharedTimeRange",
+                      "binding": "timeRange",
+                      "isOptional": true
+                    }],
+                    "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+                    "settings": {
+
+                    }
+                  }
+                },
+                "3": {
+                  "position": {
+                    "x": 6,
+                    "y": 1,
+                    "colSpan": 6,
+                    "rowSpan": 4
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "storageAccountId",
+                      "value": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                    },
+                    {
+                      "name": "_msPortalFxTimeRange",
+                      "binding": "timeRange",
+                      "isOptional": true
+                    }],
+                    "type": "Extension/Microsoft_Azure_Storage/Blade/ContainerUsageBlade/Lens/Usage/PartInstance/BlobCountMetricPart",
+                    "settings": {
+                      "content": {
+                        "metricQuerySetting": {
+                          "metrics": [{
+                            "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'), '/services/blob')]",
+                            "name": "ObjectCount",
+                            "displayName": "ObjectCount",
+                            "timeGrain": "P1D"
+                          }],
+                          "timespan": {
+                            "duration": "P7D",
+                            "start": null,
+                            "end": null
+                          },
+                          "title": "Object count"
+                        }
+                      }
+                    },
+                    "isAdapter": true,
+                    "asset": {
+                      "idInputName": "storageAccountId",
+                      "type": "StorageAccount"
+                    }
+                  }
+                },
+                "4": {
+                  "position": {
+                    "x": 0,
+                    "y": 5,
+                    "colSpan": 6,
+                    "rowSpan": 4
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "options",
+                      "value": {
+                        "charts": [{
+                          "metrics": [{
+                            "name": "BlobCapacity",
+                            "resourceMetadata": {
+                              "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                            },
+                            "type": "blob",
+                            "aggregationType": 4
+                          },
+                          {
+                            "name": "BlobCount",
+                            "resourceMetadata": {
+                              "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                            },
+                            "type": "blob",
+                            "aggregationType": 4
+                          },
+                          {
+                            "name": "Ingress",
+                            "resourceMetadata": {
+                              "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                            },
+                            "type": "blob",
+                            "aggregationType": 4
+                          }],
+                          "grouping": null,
+                          "title": "Sum (blob) Blob Capacity, Sum (blob) Blob Count, and Sum (blob) Ingress",
+                          "visualization": {
+                            "chartType": 2,
+                            "legend": {
+                              "isVisible": true,
+                              "position": 2,
+                              "hideSubtitle": false
+                            },
+                            "axis": {
+                              "x": {
+                                "isVisible": true,
+                                "min": 1525640528108,
+                                "max": 1525726928108,
+                                "axisType": 2
+                              },
+                              "y": {
+                                "isVisible": true,
+                                "axisType": 1
+                              }
+                            },
+                            "timeBrushEnable": false
+                          },
+                          "timeContext": {
+                            "options": {
+                              "useDashboardTimeRange": false,
+                              "grain": 1,
+                              "showUTCTime": false,
+                              "appliedISOGrain": "PT1H"
+                            },
+                            "relative": {
+                              "duration": 86400000
+                            }
+                          },
+                          "itemDataModel": {
+                            "grouping": null,
+                            "chartHeight": 1,
+                            "metrics": [{
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]",
+                                  "type": "microsoft.storage/storageaccounts",
+                                  "name": "[variables('telemetryStorageAccountName')]",
+                                  "otherProps": {
+                                    "resourceIdSuffix": "/blobServices/default"
+                                  }
+                                },
+                                "name": {
+                                  "id": "BlobCapacity",
+                                  "displayName": "Blob Capacity"
+                                },
+                                "kind": {
+                                  "id": "blob"
+                                }
+                              },
+                              "metricAggregation": 1,
+                              "color": "#47BDF5"
+                            },
+                            {
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                                },
+                                "name": {
+                                  "id": "BlobCount",
+                                  "displayName": "Blob Count"
+                                },
+                                "kind": {
+                                  "id": "blob"
+                                }
+                              },
+                              "metricAggregation": 1,
+                              "color": "#7E58FF"
+                            },
+                            {
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                                },
+                                "name": {
+                                  "id": "Ingress",
+                                  "displayName": "Ingress"
+                                },
+                                "kind": {
+                                  "id": "blob"
+                                }
+                              },
+                              "metricAggregation": 1,
+                              "color": "#44F1C8"
+                            }],
+                            "priorPeriod": false,
+                            "horizontalBars": true,
+                            "showOther": false,
+                            "percentage": false,
+                            "palette": "multiColor",
+                            "jsonDefinitionId": "",
+                            "yAxisOptions": {
+                              "options": 1
+                            },
+                            "title": "Sum (blob) Blob Capacity, Sum (blob) Blob Count, and Sum (blob) Ingress",
+                            "titleKind": "Auto",
+                            "visualization": {
+                              "chartType": 2,
+                              "legend": {
+                                "isVisible": true,
+                                "position": 2,
+                                "hideSubtitle": false
+                              },
+                              "axis": {
+                                "x": {
+                                  "isVisible": true,
+                                  "min": 1525640528108,
+                                  "max": 1525726928108,
+                                  "axisType": 2
+                                },
+                                "y": {
+                                  "isVisible": true,
+                                  "axisType": 1
+                                }
+                              },
+                              "timeBrushEnable": false
+                            },
+                            "appliedISOGrain": "PT1H"
+                          }
+                        }],
+                        "v2charts": true
+                      }
+                    },
+                    {
+                      "name": "sharedTimeRange",
+                      "binding": "timeRange",
+                      "isOptional": true
+                    }],
+                    "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+                    "settings": {
+                      "content": {
+                        "options": {
+                          "charts": [{
+                            "metrics": [{
+                              "name": "BlobCapacity",
+                              "resourceMetadata": {
+                                "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                              },
+                              "type": "blob",
+                              "aggregationType": 4
+                            },
+                            {
+                              "name": "BlobCount",
+                              "resourceMetadata": {
+                                "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                              },
+                              "type": "blob",
+                              "aggregationType": 4
+                            },
+                            {
+                              "name": "Ingress",
+                              "resourceMetadata": {
+                                "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                              },
+                              "type": "blob",
+                              "aggregationType": 4
+                            }],
+                            "grouping": null,
+                            "title": "Blob service Ingress / throughput / capacity",
+                            "visualization": {
+                              "chartType": 2,
+                              "legend": {
+                                "isVisible": true,
+                                "position": 2,
+                                "hideSubtitle": false
+                              },
+                              "axis": {
+                                "x": {
+                                  "isVisible": true,
+                                  "min": 1525720477080,
+                                  "max": 1525806877080,
+                                  "axisType": 2
+                                },
+                                "y": {
+                                  "isVisible": true,
+                                  "axisType": 1
+                                }
+                              },
+                              "timeBrushEnable": false
+                            },
+                            "timeContext": {
+                              "options": {
+                                "useDashboardTimeRange": false,
+                                "grain": 1,
+                                "showUTCTime": false,
+                                "appliedISOGrain": "PT1H"
+                              },
+                              "relative": {
+                                "duration": 86400000
+                              }
+                            },
+                            "itemDataModel": {
+                              "grouping": null,
+                              "chartHeight": 1,
+                              "metrics": [{
+                                "id": {
+                                  "resourceDefinition": {
+                                    "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]",
+                                    "type": "microsoft.storage/storageaccounts",
+                                    "name": "[variables('telemetryStorageAccountName')]",
+                                    "otherProps": {
+                                      "resourceIdSuffix": "/blobServices/default"
+                                    }
+                                  },
+                                  "name": {
+                                    "id": "BlobCapacity",
+                                    "displayName": "Blob Capacity"
+                                  },
+                                  "kind": {
+                                    "id": "blob"
+                                  }
+                                },
+                                "metricAggregation": 1,
+                                "color": "#47BDF5"
+                              },
+                              {
+                                "id": {
+                                  "resourceDefinition": {
+                                    "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                                  },
+                                  "name": {
+                                    "id": "BlobCount",
+                                    "displayName": "Blob Count"
+                                  },
+                                  "kind": {
+                                    "id": "blob"
+                                  }
+                                },
+                                "metricAggregation": 1,
+                                "color": "#7E58FF"
+                              },
+                              {
+                                "id": {
+                                  "resourceDefinition": {
+                                    "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                                  },
+                                  "name": {
+                                    "id": "Ingress",
+                                    "displayName": "Ingress"
+                                  },
+                                  "kind": {
+                                    "id": "blob"
+                                  }
+                                },
+                                "metricAggregation": 1,
+                                "color": "#44F1C8"
+                              }],
+                              "priorPeriod": false,
+                              "horizontalBars": true,
+                              "showOther": false,
+                              "percentage": false,
+                              "palette": "multiColor",
+                              "jsonDefinitionId": "",
+                              "yAxisOptions": {
+                                "options": 1
+                              },
+                              "title": "Blob service Ingress / throughput / capacity",
+                              "titleKind": "Custom",
+                              "visualization": {
+                                "chartType": 2,
+                                "legend": {
+                                  "isVisible": true,
+                                  "position": 2,
+                                  "hideSubtitle": false
+                                },
+                                "axis": {
+                                  "x": {
+                                    "isVisible": true,
+                                    "min": 1525720477080,
+                                    "max": 1525806877080,
+                                    "axisType": 2
+                                  },
+                                  "y": {
+                                    "isVisible": true,
+                                    "axisType": 1
+                                  }
+                                },
+                                "timeBrushEnable": false
+                              },
+                              "appliedISOGrain": "PT1H"
+                            },
+                            "disablePinning": true
+                          }],
+                          "v2charts": true
+                        },
+                        "sharedTimeRange": {
+                          "relative": {
+                            "duration": 24,
+                            "timeUnit": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "5": {
+                  "position": {
+                    "x": 6,
+                    "y": 5,
+                    "colSpan": 6,
+                    "rowSpan": 4
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "options",
+                      "value": {
+                        "charts": [{
+                          "title": "Average latency",
+                          "ariaLabel": null,
+                          "filterCollection": null,
+                          "grouping": null,
+                          "visualization": null,
+                          "metrics": [{
+                            "resourceMetadata": {
+                              "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                            },
+                            "name": "SuccessE2ELatency",
+                            "metricVisualization": null,
+                            "aggregationType": 4,
+                            "thresholds": []
+                          }],
+                          "timespan": {
+                            "grain": 9,
+                            "relative": {
+                              "duration": 86400000
+                            }
+                          },
+                          "itemDataModel": {
+                            "grouping": null,
+                            "chartHeight": 1,
+                            "metrics": [{
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]",
+                                  "type": "microsoft.storage/storageaccounts",
+                                  "name": "[variables('telemetryStorageAccountName')]",
+                                  "otherProps": {
+                                    "resourceIdSuffix": ""
+                                  }
+                                },
+                                "name": {
+                                  "id": "SuccessE2ELatency",
+                                  "displayName": "Success E2E Latency"
+                                },
+                                "kind": {
+                                  "id": "account"
+                                }
+                              },
+                              "metricAggregation": 4,
+                              "color": "#47BDF5"
+                            }],
+                            "priorPeriod": false,
+                            "horizontalBars": true,
+                            "showOther": false,
+                            "percentage": false,
+                            "palette": "multiColor",
+                            "jsonDefinitionId": "",
+                            "yAxisOptions": {
+                              "options": 1
+                            },
+                            "title": "Average latency",
+                            "titleKind": "Auto",
+                            "visualization": {
+                              "chartType": 2,
+                              "legend": {
+                                "isVisible": true,
+                                "position": 2
+                              },
+                              "axis": {
+                                "x": {
+                                  "isVisible": true,
+                                  "min": 1525628019686,
+                                  "max": 1525714419686,
+                                  "axisType": 2
+                                },
+                                "y": {
+                                  "isVisible": true,
+                                  "axisType": 1
+                                }
+                              },
+                              "timeBrushEnable": false
+                            },
+                            "appliedISOGrain": "PT30M"
+                          },
+                          "timeContext": {
+                            "options": {
+                              "useDashboardTimeRange": false,
+                              "grain": 9
+                            },
+                            "relative": {
+                              "duration": 86400000
+                            }
+                          }
+                        }],
+                        "v2charts": true
+                      }
+                    },
+                    {
+                      "name": "sharedTimeRange",
+                      "binding": "timeRange",
+                      "isOptional": true
+                    }],
+                    "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+                    "settings": {
+
+                    }
+                  }
+                },
+                "6": {
+                  "position": {
+                    "x": 0,
+                    "y": 9,
+                    "colSpan": 6,
+                    "rowSpan": 4
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "options",
+                      "value": {
+                        "charts": [{
+                          "metrics": [{
+                            "name": "Transactions",
+                            "resourceMetadata": {
+                              "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                            },
+                            "type": "account",
+                            "aggregationType": 4
+                          }],
+                          "title": "Sum (account) Transactions",
+                          "timeContext": {
+                            "options": {
+                              "grain": 1,
+                              "appliedISOGrain": "PT15M"
+                            },
+                            "relative": {
+                              "duration": 86400000
+                            }
+                          },
+                          "itemDataModel": {
+                            "chartHeight": 1,
+                            "metrics": [{
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]",
+                                  "otherProps": {
+                                    "resourceIdSuffix": ""
+                                  }
+                                },
+                                "name": {
+                                  "id": "Transactions",
+                                  "displayName": "Transactions"
+                                },
+                                "kind": {
+                                  "id": "account"
+                                }
+                              },
+                              "metricAggregation": 1,
+                              "color": "#47BDF5"
+                            }],
+                            "priorPeriod": false,
+                            "horizontalBars": true,
+                            "showOther": false,
+                            "aggregation": 1,
+                            "percentage": false,
+                            "palette": "multiColor",
+                            "filters": {
+                              "filterType": 0,
+                              "OperandFilters": [],
+                              "LogicalOperator": 0
+                            },
+                            "yAxisOptions": {
+                              "options": 1
+                            },
+                            "title": "Sum (account) Transactions",
+                            "titleKind": "Auto",
+                            "appliedISOGrain": "PT15M"
+                          }
+                        }],
+                        "v2charts": true
+                      }
+                    },
+                    {
+                      "name": "sharedTimeRange",
+                      "binding": "timeRange",
+                      "isOptional": true
+                    }],
+                    "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+                    "settings": {
+                      "content": {
+                        "options": {
+                          "charts": [{
+                            "metrics": [{
+                              "name": "Transactions",
+                              "resourceMetadata": {
+                                "resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]"
+                              },
+                              "type": "account",
+                              "aggregationType": 4
+                            }],
+                            "title": "Transactions",
+                            "timeContext": {
+                              "options": {
+                                "grain": 1,
+                                "appliedISOGrain": "PT15M"
+                              },
+                              "relative": {
+                                "duration": 86400000
+                              }
+                            },
+                            "itemDataModel": {
+                              "chartHeight": 1,
+                              "metrics": [{
+                                "id": {
+                                  "resourceDefinition": {
+                                    "id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().id, '/providers/Microsoft.Storage/storageAccounts/', variables('telemetryStorageAccountName'))]",
+                                    "otherProps": {
+                                      "resourceIdSuffix": ""
+                                    }
+                                  },
+                                  "name": {
+                                    "id": "Transactions",
+                                    "displayName": "Transactions"
+                                  },
+                                  "kind": {
+                                    "id": "account"
+                                  }
+                                },
+                                "metricAggregation": 1,
+                                "color": "#47BDF5"
+                              }],
+                              "priorPeriod": false,
+                              "horizontalBars": true,
+                              "showOther": false,
+                              "aggregation": 1,
+                              "percentage": false,
+                              "palette": "multiColor",
+                              "filters": {
+                                "filterType": 0,
+                                "OperandFilters": [],
+                                "LogicalOperator": 0
+                              },
+                              "yAxisOptions": {
+                                "options": 1
+                              },
+                              "title": "Transactions",
+                              "titleKind": "Custom",
+                              "appliedISOGrain": "PT15M"
+                            },
+                            "disablePinning": true
+                          }],
+                          "v2charts": true
+                        },
+                        "sharedTimeRange": {
+                          "relative": {
+                            "duration": 24,
+                            "timeUnit": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "7": {
+                  "position": {
+                    "x": 0,
+                    "y": 14,
+                    "colSpan": 10,
+                    "rowSpan": 1
+                  },
+                  "metadata": {
+                    "inputs": [],
+                    "type": "Extension[azure]/HubsExtension/PartType/MarkdownPart",
+                    "settings": {
+                      "content": {
+                        "settings": {
+                          "content": "[concat('<p style=\"font-size: 32px; color: white; background: linear-gradient(to bottom, #41705a, #376657); padding: 5px\">&nbsp;&nbsp;IoT Hub ', parameters('IoTHubName'), ' - Metrics</p>')]",
+                          "title": "",
+                          "subtitle": ""
+                        }
+                      }
+                    }
+                  }
+                },
+                "8": {
+                  "position": {
+                    "x": 10,
+                    "y": 14,
+                    "colSpan": 2,
+                    "rowSpan": 1
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "resourceId",
+                      "value": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('IoTHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('IoTHubName'))]"
+                    }],
+                    "type": "Extension/Microsoft_Azure_IotHub/PartType/IotHubOverviewBladePin",
+                    "defaultMenuItemId": "Overview"
+                  }
+                },
+                "9": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "colSpan": 12,
+                    "rowSpan": 4
+                  },
+                  "metadata": {
+                    "inputs": [{
+                      "name": "options",
+                      "value": {
+                        "charts": [{
+                          "metrics": [{
+                            "name": "d2c.endpoints.latency.storage",
+                            "resourceMetadata": {
+                              "resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('IoTHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('IoTHubName'))]"
+                            },
+                            "aggregationType": 1
+                          },
+                          {
+                            "name": "d2c.endpoints.latency.builtIn.events",
+                            "resourceMetadata": {
+                              "resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('IoTHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('IoTHubName'))]"
+                            },
+                            "aggregationType": 1
+                          }],
+                          "title": "Avg Message latency for storage endpoints and Avg Message latency for the built-in endpoint (messages/events)",
+                          "timeContext": {
+                            "options": {
+                              "grain": 1,
+                              "appliedISOGrain": "PT15M"
+                            },
+                            "relative": {
+                              "duration": 86400000
+                            }
+                          },
+                          "itemDataModel": {
+                            "chartHeight": 1,
+                            "metrics": [{
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('IoTHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('IoTHubName'))]"
+                                },
+                                "name": {
+                                  "id": "d2c.endpoints.latency.storage",
+                                  "displayName": "Message latency for storage endpoints"
+                                },
+                                "kind": {
+
+                                }
+                              },
+                              "metricAggregation": 4,
+                              "color": "#47BDF5"
+                            },
+                            {
+                              "id": {
+                                "resourceDefinition": {
+                                  "id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('IoTHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('IoTHubName'))]"
+                                },
+                                "name": {
+                                  "id": "d2c.endpoints.latency.builtIn.events",
+                                  "displayName": "Message latency for the built-in endpoint (messages/events)"
+                                },
+                                "kind": {
+
+                                }
+                              },
+                              "metricAggregation": 4,
+                              "color": "#7E58FF"
+                            }],
+                            "priorPeriod": false,
+                            "horizontalBars": true,
+                            "showOther": false,
+                            "aggregation": 1,
+                            "percentage": false,
+                            "palette": "multiColor",
+                            "filters": {
+                              "filterType": 0,
+                              "OperandFilters": [],
+                              "LogicalOperator": 0
+                            },
+                            "yAxisOptions": {
+                              "options": 1
+                            },
+                            "title": "Avg Message latency for storage endpoints and Avg Message latency for the built-in endpoint (messages/events)",
+                            "titleKind": "Auto",
+                            "appliedISOGrain": "PT15M"
+                          }
+                        }],
+                        "v2charts": true
+                      }
+                    },
+                    {
+                      "name": "sharedTimeRange",
+                      "binding": "timeRange",
+                      "isOptional": true
+                    }],
+                    "type": "Extension/HubsExtension/PartType/MonitorChartPart",
+                    "settings": {
+
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "metadata": {
+            "model": {
+              "timeRange": {
+                "value": {
+                  "relative": {
+                    "duration": 24,
+                    "timeUnit": 1
+                  }
+                },
+                "type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+              }
+            }
+          }
+        }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <property>
+    <name>nameNode</name>
+    <value>wasb://mycontainer@mystorageaccount.blob.core.windows.net</value>
+  </property>
+
+  <property>
+    <name>jobTracker</name>
+    <value>headnodehost:8050</value>
+  </property>
+
+  <property>
+    <name>queueName</name>
+    <value>default</value>
+  </property>
+
+  <property>
+    <name>oozie.use.system.libpath</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>enrichtelemetryhiveScript</name>
+    <value>wasb://mycontainer@mystorageaccount.blob.core.windows.net/hivescripts/enrichtelemetry.hql</value>
+  </property>
+
+  <property>
+    <name>summarizedeliverieshiveScript</name>
+    <value>wasb://mycontainer@mystorageaccount.blob.core.windows.net/hivescripts/summarizedeliveries.hql</value>
+  </property>
+
+  <property>
+    <name>user.name</name>
+    <value>admin</value>
+  </property>
+
+  <property>
+    <name>oozie.coord.application.path</name>
+    <value>wasb://mycontainer@mystorageaccount.blob.core.windows.net/hivescripts</value>
+  </property>
+
+  <property>
+    <name>workflowPath</name>
+    <value>wasb://mycontainer@mystorageaccount.blob.core.windows.net/oozieconfig</value>
+  </property>
+
+  <property>
+    <name>coordStart</name>
+    <value>2018-01-01T12:00Z</value>
+  </property>
+
+  <property>
+    <name>coordEnd</name>
+    <value>2019-01-01T12:00Z</value>    <!-- This job runs until 2019 -->
+  </property>
+
+  <property>
+    <name>coordFrequency</name>
+    <value>1440</value>    <!-- This job runs daily -->
+  </property>
+
+  <property>
+    <name>coordTimezone</name>
+    <value>UTC</value>
+  </property>
+</configuration>

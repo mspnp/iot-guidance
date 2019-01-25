@@ -1,0 +1,51 @@
+﻿<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>4c2b722d-e48d-4643-ae83-bf8b1a8295b3</ProjectGuid>
+    <OutputType>File</OutputType>
+    <AssemblyName>ASAApplication</AssemblyName>
+    <StartFile>Script.asaql</StartFile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <ASATargetsFilePath>$(AppData)\Microsoft\DataLake\MsBuild\1.0\StreamAnalytics.targets</ASATargetsFilePath>
+    <Name>DroneAsaApplication</Name>
+    <RootNamespace>DroneAsaApplication</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>false</DebugSymbols>
+    <OutputPath>bin\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Script Include="DroneAsaQueries.asaql" />
+  </ItemGroup>
+  <ItemGroup>
+    <Configure Include="Inputs\DroneTelemetry.json">
+      <SubType>Input</SubType>
+    </Configure>
+    <Configure Include="JobConfig.json">
+      <SubType>JobConfig</SubType>
+    </Configure>
+    <Configure Include="Outputs\AlertHotTelemetry.json">
+      <SubType>Output</SubType>
+    </Configure>
+    <Configure Include="Outputs\AlertNoTelemetry.json">
+      <SubType>Output</SubType>
+    </Configure>
+    <Configure Include="Outputs\AbsenceTelemetry.json">
+      <SubType>Output</SubType>
+    </Configure>
+    <Configure Include="Outputs\HotTelemetry.json">
+      <SubType>Output</SubType>
+    </Configure>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Inputs" />
+    <Folder Include="Functions" />
+    <Folder Include="Outputs" />
+  </ItemGroup>
+  <Import Project="$(ASATargetsFilePath)" />
+</Project>
