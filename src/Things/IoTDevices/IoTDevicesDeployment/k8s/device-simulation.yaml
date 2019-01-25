@@ -1,0 +1,58 @@
+#  ------------------------------------------------------------
+#   Copyright (c) Microsoft Corporation.  All rights reserved.
+#   Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+#  ------------------------------------------------------------
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: devicesimulation
+spec:
+  serviceName: devicesimulation
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: devicesimulation
+    spec:
+      containers:
+      - name: devicesimulation
+        image:
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9003
+        env:
+        - name: PCS_IOTHUB_CONNSTRING
+          valueFrom:
+            secretKeyRef:
+              name: devicesimulation 
+              key: IoTHub_ConnectionString
+        - name: PCS_STORAGEADAPTER_WEBSERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: deployment-configmap
+              key: storageadapter.webservice.url
+        - name: PCS_TWIN_READ_WRITE_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: deployment-configmap
+              key: devicesimulation.twinreadwrite
+        - name: PCS_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: deployment-configmap
+              key: general.logLevel
+        - name: PCS_IOTSDK_CONNECT_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: deployment-configmap
+              key: devicesimulation.iotsdktimeout
+        - name: MY_POD_NS 
+          valueFrom:
+              fieldRef:
+                  fieldPath: metadata.namespace 
+        - name: MY_POD_NAME 
+          valueFrom:
+              fieldRef:
+                  fieldPath: metadata.name 
+        - name: PCS_IOTHUB_DEVICEID_PREFIX
+          value: "$(MY_POD_NS)-$(MY_POD_NAME)"

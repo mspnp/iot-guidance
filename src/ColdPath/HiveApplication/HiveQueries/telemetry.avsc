@@ -1,0 +1,24 @@
+{
+  "type" : "record",
+  "name" : "Message",
+  "namespace" : "Microsoft.Azure.Devices",
+  "fields" : [ {
+    "name" : "EnqueuedTimeUtc",
+    "type" : "string"
+  }, {
+    "name" : "Properties",
+    "type" : {
+      "type" : "map",
+      "values" : "string"
+    }
+  }, {
+    "name" : "SystemProperties",
+    "type" : {
+      "type" : "map",
+      "values" : "string"
+    }
+  }, {
+    "name" : "Body",
+    "type" : [ "null", "bytes" ]
+  } ]
+}

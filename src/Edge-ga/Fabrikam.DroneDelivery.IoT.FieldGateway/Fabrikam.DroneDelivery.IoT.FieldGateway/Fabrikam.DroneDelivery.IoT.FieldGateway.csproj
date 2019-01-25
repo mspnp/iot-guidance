@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Fabrikam.DroneDelivery.IoT.ConsoleHost\Fabrikam.DroneDelivery.IoT.ConsoleHost.csproj" />
+    <ProjectReference Include="..\Fabrikam.DroneDelivery.IoT.DeviceDestroyer\Fabrikam.DroneDelivery.IoT.DeviceDestroyer.csproj" />
+    <ProjectReference Include="..\Fabrikam.DroneDelivery.IoT.DeviceSimulator\Fabrikam.DroneDelivery.IoT.DeviceSimulator.csproj" />
+  </ItemGroup>
+
+</Project>

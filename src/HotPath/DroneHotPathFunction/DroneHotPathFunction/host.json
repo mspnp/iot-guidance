@@ -1,0 +1,22 @@
+{
+  "version": "2.0",
+  "aggregator": {
+    "batchSize": 1000,
+    "flushTimeout": "00:00:15"
+  },
+
+
+  "logger": {
+    "categoryFilter": {
+      "defaultLevel": "Information",
+      "categoryLevels": {
+        "Host": "Information",
+        "Function": "Information",
+        "Host.Aggregator": "Information"
+      }
+    }
+  }
+
+
+
+}

@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27512.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fabrikam.DroneDelivery.IoT.FieldGateway", "Fabrikam.DroneDelivery.IoT.FieldGateway\Fabrikam.DroneDelivery.IoT.FieldGateway.csproj", "{F73A4569-9352-4DFD-B1C7-3E421196D47F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fabrikam.DroneDelivery.IoT.DeviceSimulator", "Fabrikam.DroneDelivery.IoT.DeviceSimulator\Fabrikam.DroneDelivery.IoT.DeviceSimulator.csproj", "{D3BE927C-998F-47F8-BE7F-AED1FAA68004}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fabrikam.DroneDelivery.IoT.DeviceDestroyer", "Fabrikam.DroneDelivery.IoT.DeviceDestroyer\Fabrikam.DroneDelivery.IoT.DeviceDestroyer.csproj", "{617F6946-3083-48FC-ADF5-FEB061CCAD01}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fabrikam.DroneDelivery.IoT.ConsoleHost", "Fabrikam.DroneDelivery.IoT.ConsoleHost\Fabrikam.DroneDelivery.IoT.ConsoleHost.csproj", "{F49371F8-4594-4411-B4B2-895F496071AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F73A4569-9352-4DFD-B1C7-3E421196D47F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F73A4569-9352-4DFD-B1C7-3E421196D47F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F73A4569-9352-4DFD-B1C7-3E421196D47F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F73A4569-9352-4DFD-B1C7-3E421196D47F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3BE927C-998F-47F8-BE7F-AED1FAA68004}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3BE927C-998F-47F8-BE7F-AED1FAA68004}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3BE927C-998F-47F8-BE7F-AED1FAA68004}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3BE927C-998F-47F8-BE7F-AED1FAA68004}.Release|Any CPU.Build.0 = Release|Any CPU
+		{617F6946-3083-48FC-ADF5-FEB061CCAD01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{617F6946-3083-48FC-ADF5-FEB061CCAD01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{617F6946-3083-48FC-ADF5-FEB061CCAD01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{617F6946-3083-48FC-ADF5-FEB061CCAD01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F49371F8-4594-4411-B4B2-895F496071AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F49371F8-4594-4411-B4B2-895F496071AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F49371F8-4594-4411-B4B2-895F496071AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F49371F8-4594-4411-B4B2-895F496071AA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ADE2977F-4BE4-4B1C-A7B2-F02E41C168E2}
+	EndGlobalSection
+EndGlobal

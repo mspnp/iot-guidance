@@ -1,0 +1,1521 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"StreamAnalyticsJobName": {
+			"type": "string",
+			"minLength": 3,
+			"maxLength": 63,
+			"defaultValue": "DroneTelemetryProcessing",
+			"metadata": {
+				"description": "Stream Analytics Job Name, can contain alphanumeric characters and hypen and must be 3-63 characters long"
+			}
+		},
+		"OutputStartMode": {
+			"type": "string",
+			"defaultValue": "JobStartTime"
+		},
+		"DataLocale": {
+			"type": "string"
+		},
+		"OutputErrorPolicy": {
+			"type": "string",
+			"allowedValues": [
+				"Drop",
+				"Stop"
+			]
+		},
+		"EventsLateArrivalMaxDelayInSeconds": {
+			"type": "int"
+		},
+		"EventsOutOfOrderMaxDelayInSeconds": {
+			"type": "int"
+		},
+		"EventsOutOfOrderPolicy": {
+			"type": "string",
+			"allowedValues": [
+				"Adjust",
+				"Drop"
+			]
+		},
+		"StreamingUnits": {
+			"type": "int",
+			"minValue": 48,
+			"maxValue": 120,
+			"metadata": {
+				"description": "Number of Streaming Units"
+			},
+			"allowedValues": [
+				48,
+				60,
+				84,
+				120
+			]
+		},
+		"CompatibilityLevel": {
+			"type": "string",
+			"allowedValues": [
+				"1.0",
+				"1.1"
+			]
+		},
+		"Input_droneTelemetry_iotHubNamespace": {
+			"type": "string"
+		},
+		"Input_droneTelemetry_iotHubResourceGroup": {
+			"type": "string"
+		},
+		"Input_droneTelemetry_consumerGroupName": {
+			"type": "string"
+		},
+		"Input_droneTelemetry_endpoint": {
+			"type": "string",
+			"defaultValue": "messages/events"
+		},
+		"Input_droneTelemetry_sharedAccessPolicyName": {
+			"type": "string"
+		},
+		"Input_droneTelemetry_sharedAccessPolicyKey": {
+			"type": "string"
+		},
+		"Output_functionAppName": {
+			"type": "string"
+		},
+		"Output_functionName": {
+			"type": "string"
+		},
+		"Output_function_apiKey": {
+			"type": "string"
+		},
+		"Output_function_maxBatchCount": {
+			"type": "int"
+		},
+		"Output_cosmos_accountId": {
+			"type": "string"
+		},
+		"Output_cosmos_accountKey": {
+			"type": "string"
+		},
+		"Output_cosmos_database": {
+			"type": "string"
+		},
+		"Output_AbsenceTelemetry_collectionNamePattern": {
+			"type": "string"
+		},
+		"Output_cosmos_documentId": {
+			"type": "string"
+		},
+		"Output_HotTelemetry_collectionNamePattern": {
+			"type": "string"
+		},
+		"AppInsightsNameInFunctionApp": {
+			"type": "string",
+			"metadata": {
+				"description": "App Insights name asociated to the Azure Function App"
+			}
+		}
+	},
+	"variables": {
+		"StreamAnalyticsJobName": "[toLower(concat(parameters('StreamAnalyticsJobName'),'-',resourceGroup().name))]",
+		"dashboardName": "Hot Path - Dashboard",
+		"dashboardID": "[concat('dashboard', uniquestring(variables('dashboardName'), resourceGroup().id))]"
+	},
+	"resources": [
+	  {
+		"type": "Microsoft.StreamAnalytics/StreamingJobs",
+		"apiVersion": "2015-10-01",
+		"name": "[variables('StreamAnalyticsJobName')]",
+		"location": "[resourceGroup().location]",
+		"properties": {
+			"outputStartMode": "[parameters('OutputStartMode')]",
+			"outputStartTime": null,
+			"sku": {
+				"name": "standard"
+			},
+			"eventsOutOfOrderPolicy": "[parameters('EventsOutOfOrderPolicy')]",
+			"outputErrorPolicy": "[parameters('OutputErrorPolicy')]",
+			"eventsOutOfOrderMaxDelayInSeconds": "[parameters('EventsOutOfOrderMaxDelayInSeconds')]",
+			"eventsLateArrivalMaxDelayInSeconds": "[parameters('EventsLateArrivalMaxDelayInSeconds')]",
+			"dataLocale": "[parameters('DataLocale')]",
+			"compatibilityLevel": "[parameters('CompatibilityLevel')]",
+			"inputs": [
+			  {
+				"name": "droneTelemetry",
+				"properties": {
+					"type": "Stream",
+					"datasource": {
+						"type": "Microsoft.Devices/IotHubs",
+						"properties": {
+							"iotHubNamespace": "[parameters('Input_droneTelemetry_iotHubNamespace')]",
+							"consumerGroupName": "[parameters('Input_droneTelemetry_consumerGroupName')]",
+							"endpoint": "[parameters('Input_droneTelemetry_endpoint')]",
+							"sharedAccessPolicyName": "[parameters('Input_droneTelemetry_sharedAccessPolicyName')]",
+							"sharedAccessPolicyKey": "[parameters('Input_droneTelemetry_sharedAccessPolicyKey')]"
+						}
+					},
+					"compression": {
+						"type": "None"
+					},
+					"serialization": {
+						"type": "Json",
+						"properties": {
+							"encoding": "UTF8"
+						}
+					}
+				}
+			  }
+			],
+			"outputs": [
+			  {
+				"name": "AlertHotTelemetry",
+				"properties": {
+					"datasource": {
+						"type": "Microsoft.AzureFunction",
+						"properties": {
+							"functionAppName": "[parameters('Output_functionAppName')]",
+							"functionName": "[parameters('Output_functionName')]",
+							"apiKey": "[parameters('Output_function_apiKey')]",
+							"maxBatchSize": null,
+							"maxBatchCount": "[parameters('Output_function_maxBatchCount')]"
+						}
+					}
+				}
+			  },
+			  {
+				"name": "AlertNoTelemetry",
+				"properties": {
+					"datasource": {
+						"type": "Microsoft.AzureFunction",
+						"properties": {
+							"functionAppName": "[parameters('Output_functionAppName')]",
+							"functionName": "[parameters('Output_functionName')]",
+							"apiKey": "[parameters('Output_function_apiKey')]",
+							"maxBatchSize": null,
+							"maxBatchCount": "[parameters('Output_function_maxBatchCount')]"
+						}
+					}
+				}
+			  },
+			  {
+				"name": "AbsenceTelemetry",
+				"properties": {
+					"serialization": {
+						"type": "Json",
+						"properties": {
+							"encoding": "UTF8",
+							"format": "LineSeparated"
+						}
+					},
+					"datasource": {
+						"type": "Microsoft.Storage/DocumentDB",
+						"properties": {
+							"accountId": "[parameters('Output_cosmos_accountId')]",
+							"accountKey": "[parameters('Output_cosmos_accountKey')]",
+							"database": "[parameters('Output_cosmos_database')]",
+							"collectionNamePattern": "[parameters('Output_AbsenceTelemetry_collectionNamePattern')]",
+							"partitionKey": null,
+							"documentId": "[parameters('Output_cosmos_documentId')]"
+						}
+					}
+				}
+			  },
+			  {
+				"name": "HotTelemetry",
+				"properties": {
+					"serialization": {
+						"type": "Json",
+						"properties": {
+							"encoding": "UTF8",
+							"format": "LineSeparated"
+						}
+					},
+					"datasource": {
+						"type": "Microsoft.Storage/DocumentDB",
+						"properties": {
+							"accountId": "[parameters('Output_cosmos_accountId')]",
+							"accountKey": "[parameters('Output_cosmos_accountKey')]",
+							"database": "[parameters('Output_cosmos_database')]",
+							"collectionNamePattern": "[parameters('Output_HotTelemetry_collectionNamePattern')]",
+							"partitionKey": null,
+							"documentId": "[parameters('Output_cosmos_documentId')]"
+						}
+					}
+				}
+			  }
+			],
+			"transformation": {
+				"name": "Transformation",
+				"properties": {
+					"streamingUnits": "[parameters('StreamingUnits')]",
+					"query": "WITH\r\nAvgTumblingWindows AS \r\n(\r\nSELECT 'hotTemperature' AS message,\r\n          partitionid,\r\n           deliveryid,\r\n           deviceid,\r\n           AVG(temperature) AS [avgtemperature],\r\n           MAX(CAST(eventenqueuedutctime AS DATETIME)) AS lastenqueuedutctime ,\r\n           MAX(CAST(occurrenceutctime AS DATETIME)) AS lastoccurrenceutctime,\r\n           MAX(CAST(eventprocessedutcTime AS DATETIME)) AS lastprocessedutctime\r\n    FROM droneTelemetry\r\n    TIMESTAMP BY occurrenceutctime OVER deviceid,partitionid\r\n    PARTITION BY PartitionId\r\n    WHERE  sensortype='drone-state-sensor;v1'\r\n    GROUP BY TumblingWindow(second, 180),\r\n             deviceid,\r\n             deliveryid,\r\n             partitionid\r\n    HAVING   \r\n        [avgtemperature] >= 75\r\n\r\n),\r\n\r\nNoTelemetry AS \r\n(\r\n    SELECT 'noTelemetry' AS message,\r\n           I1.partitionid AS partitionid,\r\n           I1.deliveryid AS deliveryid,\r\n           I1.deviceid AS deviceid,\r\n           I1.temperature AS avgtemperature,\r\n           I1.eventenqueuedutctime AS  lastenqueuedutctime,\r\n           I1.occurrenceutctime AS lastoccurrenceutctime,\r\n           I1.eventprocessedutcTime AS lastprocessedutctime\r\n    FROM droneTelemetry I1 TIMESTAMP BY occurrenceutctime OVER deviceid,partitionId PARTITION BY partitionId\r\n    LEFT OUTER JOIN droneTelemetry I2 TIMESTAMP BY occurrenceutctime OVER deviceid,partitionId PARTITION BY partitionId  \r\n    ON I1.deviceid=I2.deviceid \r\n    AND I1.partitionid=I2.partitionid\r\n    AND DATEDIFF( minute , I1 , I2 ) BETWEEN 2 AND 10   \r\n    WHERE  I1.sensortype='drone-state-sensor;v1' AND\r\n    I2.deviceid IS NULL   \r\n)\r\n\r\n\r\n\r\nSELECT * \r\nINTO hotTelemetry\r\nFROM AvgTumblingWindows\r\nPARTITION BY PartitionId\r\n\r\nSELECT *\r\nINTO alertHotTelemetry\r\nFROM AvgTumblingWindows\r\nPARTITION BY PartitionId\r\nWHERE \r\nISFIRST(mi, 5) OVER (PARTITION BY deviceid,partitionid) = 1\r\n\r\n\r\n SELECT *\r\n    INTO alertNoTelemetry  \r\n    FROM NoTelemetry\r\n    PARTITION BY PartitionId \r\n    WHERE \r\n    ISFIRST(mi, 5) OVER (PARTITION BY deviceid,partitionid) = 1 \r\n  \r\nSELECT *\r\n    INTO absenceTelemetry  \r\n    FROM NoTelemetry \r\n    PARTITION BY PartitionId\r\n"
+				}
+			},
+			"functions": []
+		}
+	  },
+	  {
+		"name": "[variables('dashboardID')]",
+		"type": "Microsoft.Portal/dashboards",
+		"location": "[resourceGroup().location]",
+		"apiVersion": "2015-08-01-preview",
+		"tags": {
+			"hidden-title": "[variables('dashboardName')]"
+		},
+		"properties": {
+			"lenses": {
+				"0": {
+					"order": 0,
+					"parts": {
+						"0": {
+							"position": {
+								"x": 0,
+								"y": 0,
+								"colSpan": 10,
+								"rowSpan": 1
+							},
+							"metadata": {
+								"inputs": [],
+								"type": "Extension[azure]/HubsExtension/PartType/MarkdownPart",
+								"settings": {
+									"content": {
+										"settings": {
+											"content": "[concat('<p style=\"font-size: 32px; color: white; background: linear-gradient(to bottom, #41705a, #376657); padding: 5px\">&nbsp;&nbsp;IoT Hub ', parameters('Input_droneTelemetry_iotHubNamespace'), ' - Metrics</p>')]",
+											"title": "",
+											"subtitle": ""
+										}
+									}
+								}
+							}
+						},
+						"1": {
+							"position": {
+								"x": 10,
+								"y": 0,
+								"colSpan": 2,
+								"rowSpan": 1
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "resourceId",
+									"value": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+								}],
+								"type": "Extension/Microsoft_Azure_IotHub/PartType/IotHubOverviewBladePin",
+								"defaultMenuItemId": "Overview"
+							}
+						},
+						"2": {
+							"position": {
+								"x": 0,
+								"y": 1,
+								"colSpan": 6,
+								"rowSpan": 3
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "queryInputs",
+									"value": {
+										"metrics": [{
+											"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+											"name": "deviceDataUsage"
+										}],
+										"timespan": {
+											"duration": "P7D",
+											"start": null,
+											"end": null
+										},
+										"chartType": 0,
+										"title": "title"
+									}
+								}],
+								"type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+								"settings": {
+									
+								}
+							}
+						},
+						"3": {
+							"position": {
+								"x": 6,
+								"y": 1,
+								"colSpan": 6,
+								"rowSpan": 3
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "queryInputs",
+									"value": {
+										"metrics": [{
+											"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+											"name": "dailyMessageQuotaUsed"
+										}],
+										"timespan": {
+											"duration": "P7D",
+											"start": null,
+											"end": null
+										},
+										"chartType": 0,
+										"title": "title"
+									}
+								}],
+								"type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+								"settings": {
+									"content": {
+										"savedQuery": {
+											"metrics": [{
+												"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+												"name": "d2c.telemetry.ingress.sendThrottle"
+											},
+											{
+												"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+												"name": "dailyMessageQuotaUsed"
+											}],
+											"timespan": {
+												"duration": "P7D",
+												"start": null,
+												"end": null
+											},
+											"chartType": 0
+										}
+									}
+								}
+							}
+						},
+						"4": {
+							"position": {
+								"x": 0,
+								"y": 4,
+								"colSpan": 6,
+								"rowSpan": 3
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "queryInputs",
+									"value": {
+										"metrics": [{
+											"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+											"name": "c2d.commands.egress.complete.success"
+										},
+										{
+											"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+											"name": "devices.connectedDevices.allProtocol"
+										},
+										{
+											"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+											"name": "d2c.twin.update.success"
+										},
+										{
+											"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+											"name": "d2c.telemetry.ingress.success"
+										},
+										{
+											"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+											"name": "devices.totalDevices"
+										}],
+										"timespan": {
+											"duration": "PT1H",
+											"start": null,
+											"end": null
+										},
+										"chartType": 0,
+										"title": "title"
+									}
+								}],
+								"type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+								"settings": {
+									"content": {
+										"savedQuery": {
+											"metrics": [{
+												"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+												"name": "c2d.commands.egress.complete.success"
+											},
+											{
+												"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+												"name": "connectedDeviceCount"
+											},
+											{
+												"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+												"name": "d2c.twin.update.success"
+											},
+											{
+												"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+												"name": "d2c.telemetry.ingress.success"
+											},
+											{
+												"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]",
+												"name": "devices.totalDevices"
+											}],
+											"timespan": {
+												"duration": "PT1H",
+												"start": null,
+												"end": null
+											},
+											"chartType": 0
+										}
+									}
+								}
+							}
+						},
+						"5": {
+							"position": {
+								"x": 6,
+								"y": 4,
+								"colSpan": 6,
+								"rowSpan": 3
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "options",
+									"value": {
+										"charts": [{
+											"metrics": [{
+												"name": "connectedDeviceCount",
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+												},
+												"aggregationType": 1
+											},
+											{
+												"name": "totalDeviceCount",
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+												},
+												"aggregationType": 4
+											}],
+											"title": "Avg Connected devices (preview) and Sum Total devices (preview)",
+											"timeContext": {
+												"options": {
+													"grain": 2,
+													"appliedISOGrain": "PT1M",
+													"showUTCTime": false
+												},
+												"relative": {
+													"duration": 86400000
+												}
+											},
+											"itemDataModel": {
+												"chartHeight": 1,
+												"metrics": [{
+													"id": {
+														"resourceDefinition": {
+															"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+														},
+														"name": {
+															"id": "connectedDeviceCount",
+															"displayName": "Connected devices (preview)"
+														}
+													},
+													"metricAggregation": 4,
+													"color": "#47BDF5"
+												},
+												{
+													"id": {
+														"resourceDefinition": {
+															"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+														},
+														"name": {
+															"id": "totalDeviceCount",
+															"displayName": "Total devices (preview)"
+														},
+														"kind": {
+															
+														}
+													},
+													"metricAggregation": 1,
+													"color": "#7E58FF"
+												}],
+												"priorPeriod": false,
+												"horizontalBars": true,
+												"showOther": false,
+												"aggregation": 1,
+												"percentage": false,
+												"palette": "multiColor",
+												"filters": {
+													"filterType": 0,
+													"OperandFilters": [],
+													"LogicalOperator": 0
+												},
+												"yAxisOptions": {
+													"options": 1
+												},
+												"title": "Avg Connected devices (preview) and Sum Total devices (preview)",
+												"titleKind": "Auto",
+												"appliedISOGrain": "PT1M"
+											}
+										}],
+										"v2charts": true
+									}
+								},
+								{
+									"name": "sharedTimeRange",
+									"binding": "timeRange",
+									"isOptional": true
+								}],
+								"type": "Extension/HubsExtension/PartType/MonitorChartPart",
+								"settings": {
+									
+								}
+							}
+						},
+						"6": {
+							"position": {
+								"x": 0,
+								"y": 7,
+								"colSpan": 12,
+								"rowSpan": 3
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "options",
+									"value": {
+										"charts": [{
+											"metrics": [{
+												"name": "d2c.telemetry.ingress.allProtocol",
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+												},
+												"aggregationType": 4
+											},
+											{
+												"name": "d2c.telemetry.ingress.success",
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+												},
+												"aggregationType": 4
+											}],
+											"title": "Sum Telemetry message send attempts and Sum Telemetry messages sent",
+											"timeContext": {
+												"options": {
+													"grain": 1,
+													"appliedISOGrain": "PT15M"
+												},
+												"relative": {
+													"duration": 86400000
+												}
+											},
+											"itemDataModel": {
+												"chartHeight": 1,
+												"metrics": [{
+													"id": {
+														"resourceDefinition": {
+															"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+														},
+														"name": {
+															"id": "d2c.telemetry.ingress.allProtocol",
+															"displayName": "Telemetry message send attempts"
+														},
+														"kind": {
+															
+														}
+													},
+													"metricAggregation": 1,
+													"color": "#6dc2e9"
+												},
+												{
+													"id": {
+														"resourceDefinition": {
+															"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('Input_droneTelemetry_iotHubResourceGroup'),'/providers/Microsoft.Devices/IotHubs/',parameters('Input_droneTelemetry_iotHubNamespace'))]"
+														},
+														"name": {
+															"id": "d2c.telemetry.ingress.success",
+															"displayName": "Telemetry messages sent"
+														},
+														"kind": {
+															
+														}
+													},
+													"metricAggregation": 1,
+													"color": "#0072c6"
+												}],
+												"priorPeriod": false,
+												"horizontalBars": true,
+												"showOther": false,
+												"aggregation": 1,
+												"percentage": false,
+												"palette": "multiColor",
+												"filters": {
+													"filterType": 0,
+													"OperandFilters": [],
+													"LogicalOperator": 0
+												},
+												"yAxisOptions": {
+													"options": 1
+												},
+												"title": "Sum Telemetry message send attempts and Sum Telemetry messages sent",
+												"titleKind": "Auto",
+												"appliedISOGrain": "PT15M"
+											}
+										}],
+										"v2charts": true
+									}
+								},
+								{
+									"name": "sharedTimeRange",
+									"binding": "timeRange",
+									"isOptional": true
+								}],
+								"type": "Extension/HubsExtension/PartType/MonitorChartPart",
+								"settings": {
+									
+								}
+							}
+						},
+						"7": {
+							"position": {
+								"x": 0,
+								"y": 11,
+								"colSpan": 12,
+								"rowSpan": 1
+							},
+							"metadata": {
+								"inputs": [],
+								"type": "Extension[azure]/HubsExtension/PartType/MarkdownPart",
+								"settings": {
+									"content": {
+										"settings": {
+											"content": "[concat('<p style=\"font-size: 32px; color: white; background: linear-gradient(to bottom, #202020, #505050); padding: 5px\">&nbsp;&nbsp;Function App ', parameters('Output_functionAppName'), ' - Metrics</p>')]",
+											"title": "",
+											"subtitle": ""
+										}
+									}
+								}
+							}
+						},
+						"8": {
+							"position": {
+								"x": 0,
+								"y": 12,
+								"colSpan": 2,
+								"rowSpan": 2
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "id",
+									"value": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().name, '/providers/Microsoft.Web/sites/', parameters('Output_functionAppName'))]"
+								}],
+								"type": "Extension/WebsitesExtension/PartType/SingleWebsitePart",
+								"asset": {
+									"idInputName": "id",
+									"type": "Website"
+								}
+							}
+						},
+						"9": {
+							"position": {
+								"x": 2,
+								"y": 12,
+								"colSpan": 2,
+								"rowSpan": 2
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ComponentId",
+									"value": {
+										"Name": "[parameters('AppInsightsNameInFunctionApp')]",
+										"SubscriptionId": "[subscription().subscriptionId]",
+										"ResourceGroup": "[resourceGroup().name]"
+									}
+								},
+								{
+									"name": "TimeContext",
+									"value": {
+										"durationMs": 86400000,
+										"endTime": null,
+										"createdTime": "2018-03-28T12:31:06.381Z",
+										"isInitialTime": true,
+										"grain": 1,
+										"useDashboardTimeRange": false
+									}
+								},
+								{
+									"name": "BladeId",
+									"value": "[concat('GeneralAppOverview.Blade01', uniquestring(variables('dashboardName'), resourceGroup().id))]",
+									"isOptional": true
+								},
+								{
+									"name": "Version",
+									"value": "1.0"
+								}],
+								"type": "Extension/AppInsightsExtension/Blade/GeneralAppOverview/Lens/ApplicationHealthButtonsLens/PartInstance/AssetPart",
+								"asset": {
+									"idInputName": "ComponentId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"10": {
+							"position": {
+								"x": 4,
+								"y": 12,
+								"colSpan": 2,
+								"rowSpan": 2
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ResourceId",
+									"value": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().name, '/providers/microsoft.insights/components/', parameters('AppInsightsNameInFunctionApp'))]"
+								},
+								{
+									"name": "DataModel",
+									"isOptional": true
+								}],
+								"type": "Extension/AppInsightsExtension/PartType/CuratedBladePerformancePinnedPart",
+								"isAdapter": true,
+								"asset": {
+									"idInputName": "ResourceId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"11": {
+							"position": {
+								"x": 6,
+								"y": 12,
+								"colSpan": 4,
+								"rowSpan": 2
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ResourceId",
+									"value": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', resourceGroup().name, '/providers/microsoft.insights/components/', parameters('AppInsightsNameInFunctionApp'))]"
+								},
+								{
+									"name": "DataModel",
+									"value": {
+										"version": "1.0.0",
+										"timeContext": {
+											"durationMs": 86400000,
+											"createdTime": "2018-03-28T14:16:05.092Z",
+											"isInitialTime": false,
+											"grain": 1,
+											"useDashboardTimeRange": false
+										}
+									},
+									"isOptional": true
+								}],
+								"type": "Extension/AppInsightsExtension/PartType/CuratedBladeFailuresPinnedPart",
+								"isAdapter": true,
+								"asset": {
+									"idInputName": "ResourceId",
+									"type": "ApplicationInsights"
+								},
+								"defaultMenuItemId": "failures"
+							}
+						},
+						"12": {
+							"position": {
+								"x": 10,
+								"y": 12,
+								"colSpan": 2,
+								"rowSpan": 1
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ComponentId",
+									"value": {
+										"Name": "[parameters('AppInsightsNameInFunctionApp')]",
+										"SubscriptionId": "[subscription().subscriptionId]",
+										"ResourceGroup": "[resourceGroup().name]"
+									}
+								},
+								{
+									"name": "Version",
+									"value": "1.0"
+								}],
+								"type": "Extension/AppInsightsExtension/Blade/GeneralAppOverview/Lens/ApplicationHealthButtonsLens/PartInstance/ProactiveDetectionAsyncPartReference",
+								"asset": {
+									"idInputName": "ComponentId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"13": {
+							"position": {
+								"x": 0,
+								"y": 14,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ComponentId",
+									"value": {
+										"Name": "[parameters('AppInsightsNameInFunctionApp')]",
+										"SubscriptionId": "[subscription().subscriptionId]",
+										"ResourceGroup": "[resourceGroup().name]"
+									}
+								},
+								{
+									"name": "MetricsExplorerJsonDefinitionId",
+									"value": "pinJson:?name={\n  \"version\": \"1.4.1\",\n  \"isCustomDataModel\": true,\n  \"items\": [\n    {\n      \"id\": \"90a7134d-9a38-4c25-88d3-a495209873eb\",\n      \"chartType\": \"Line\",\n      \"chartHeight\": 4,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry Count\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    },\n    {\n      \"id\": \"0c289098-88e8-4010-b212-546815cddf70\",\n      \"chartType\": \"Area\",\n      \"chartHeight\": 2,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry MaxDurationMs\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    },\n    {\n      \"id\": \"f5347311-1186-4ea0-906f-e4519e7a1dfa\",\n      \"chartType\": \"Area\",\n      \"chartHeight\": 2,\n      \"metrics\": [\n        {\n          \"id\": \"billingMeters/telemetrySize\",\n          \"metricAggregation\": \"Sum\",\n          \"color\": \"msportalfx-bgcolor-g0\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Sum\",\n      \"percentage\": false,\n      \"palette\": \"powerBiHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    }\n  ],\n  \"currentFilter\": {\n    \"eventTypes\": [\n      4,\n      1,\n      3,\n      5,\n      2,\n      6,\n      13,\n      8,\n      12\n    ],\n    \"typeFacets\": {},\n    \"isPermissive\": false\n  },\n  \"jsonUri\": \"MetricsExplorerPinJsonDefinitionId - Dashboard.c3013e98-e44d-40af-abc4-d54f92bd0571 - Pinned from 'BlankChart'\"\n}"
+								},
+								{
+									"name": "BladeId",
+									"value": "[concat('Dashboard01', uniquestring(variables('dashboardName'), resourceGroup().id))]"
+								},
+								{
+									"name": "TimeContext",
+									"value": {
+										"durationMs": 86400000,
+										"createdTime": "2018-03-28T13:22:02.111Z",
+										"isInitialTime": false,
+										"grain": 1,
+										"useDashboardTimeRange": false
+									}
+								},
+								{
+									"name": "Version",
+									"value": "1.0"
+								},
+								{
+									"name": "DashboardTimeRange",
+									"value": {
+										"relative": {
+											"duration": 1440,
+											"timeUnit": 0
+										}
+									},
+									"isOptional": true
+								}],
+								"type": "Extension/AppInsightsExtension/PartType/MetricsExplorerOutsideMEBladePart",
+								"settings": {
+									"content": {
+										"metricsExplorerJson": "{\n  \"version\": \"1.4.1\",\n  \"isCustomDataModel\": true,\n  \"items\": [\n    {\n      \"id\": \"90a7134d-9a38-4c25-88d3-a495209873eb\",\n      \"chartType\": \"Line\",\n      \"chartHeight\": 4,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry Count\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    },\n    {\n      \"id\": \"0c289098-88e8-4010-b212-546815cddf70\",\n      \"chartType\": \"Area\",\n      \"chartHeight\": 2,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry MaxDurationMs\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    }\n  ],\n  \"currentFilter\": {\n    \"eventTypes\": [\n      4,\n      1,\n      3,\n      5,\n      2,\n      6,\n      13,\n      8\n    ],\n    \"typeFacets\": {},\n    \"isPermissive\": false\n  },\n  \"timeContext\": {\n    \"durationMs\": 86400000,\n    \"createdTime\": \"2018-03-28T13:22:02.111Z\",\n    \"isInitialTime\": false,\n    \"grain\": 1,\n    \"useDashboardTimeRange\": false\n  },\n  \"jsonUri\": \"MetricsExplorerPinJsonDefinitionId - Dashboard.c3013e98-e44d-40af-abc4-d54f92bd0571 - Pinned from 'BlankChart'\",\n  \"timeSource\": 0\n}"
+									}
+								},
+								"viewState": {
+									"content": {
+										"metricsExplorerJson": "{\n  \"version\": \"1.4.1\",\n  \"isCustomDataModel\": true,\n  \"items\": [\n    {\n      \"id\": \"90a7134d-9a38-4c25-88d3-a495209873eb\",\n      \"chartType\": \"Line\",\n      \"chartHeight\": 4,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry Count\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    },\n    {\n      \"id\": \"0c289098-88e8-4010-b212-546815cddf70\",\n      \"chartType\": \"Area\",\n      \"chartHeight\": 2,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry MaxDurationMs\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    }\n  ],\n  \"currentFilter\": {\n    \"eventTypes\": [\n      4,\n      1,\n      3,\n      5,\n      2,\n      6,\n      13,\n      8\n    ],\n    \"typeFacets\": {},\n    \"isPermissive\": false\n  },\n  \"timeContext\": {\n    \"durationMs\": 86400000,\n    \"createdTime\": \"2018-03-28T13:22:02.111Z\",\n    \"isInitialTime\": false,\n    \"grain\": 1,\n    \"useDashboardTimeRange\": false\n  },\n  \"jsonUri\": \"MetricsExplorerPinJsonDefinitionId - Dashboard.c3013e98-e44d-40af-abc4-d54f92bd0571 - Pinned from 'BlankChart'\",\n  \"timeSource\": 0\n}"
+									}
+								},
+								"asset": {
+									"idInputName": "ComponentId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"14": {
+							"position": {
+								"x": 6,
+								"y": 14,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ComponentId",
+									"value": {
+										"SubscriptionId": "[subscription().subscriptionId]",
+										"ResourceGroup": "[resourceGroup().name]",
+										"Name": "[parameters('AppInsightsNameInFunctionApp')]"
+									}
+								},
+								{
+									"name": "Query",
+									"value": "// 90th percentile and average of Server response time of requests with Operation name: \"HotTelemetry\", in the last 24 hours\nrequests\n| where timestamp >= ago(24h)\n| where operation_Name == \"HotTelemetry\" \n| summarize totalCount = sum(itemCount), totalDurationInMs = sum(itemCount * duration), percentilew(duration, itemCount, 90) by bin(timestamp, 1d) \n| extend avgDuration = todouble(totalDurationInMs) / todouble(totalCount)\n| project server_response_time_sec = round(avgDuration/1000, 2), server_response_time_90_percentile_sec = round(percentile_duration_90/1000, 2), timestamp \n| render timechart\n"
+								},
+								{
+									"name": "Dimensions",
+									"value": {
+										"xAxis": {
+											"name": "timestamp",
+											"type": "DateTime"
+										},
+										"yAxis": [{
+											"name": "server_response_time_sec",
+											"type": "Double"
+										},
+										{
+											"name": "server_response_time_90_percentile_sec",
+											"type": "Double"
+										}],
+										"splitBy": [],
+										"aggregation": "Sum"
+									}
+								},
+								{
+									"name": "Version",
+									"value": "1.0"
+								},
+								{
+									"name": "DashboardId",
+									"value": "/subscriptions/d0d422cd-e446-42aa-a2e2-e88806508d3b/resourceGroups/dashboards/providers/Microsoft.Portal/dashboards/cf01e0c6-eec4-4cd1-abd4-9e342749c3e3"
+								},
+								{
+									"name": "PartId",
+									"value": "3f0e2cc5-be66-43fb-85c6-27edf7edae96"
+								},
+								{
+									"name": "PartTitle",
+									"value": "Analytics"
+								},
+								{
+									"name": "PartSubTitle",
+									"value": "[parameters('AppInsightsNameInFunctionApp')]"
+								},
+								{
+									"name": "resourceTypeMode",
+									"value": "components"
+								}],
+								"type": "Extension/AppInsightsExtension/PartType/AnalyticsLineChartPart",
+								"settings": {
+									
+								},
+								"asset": {
+									"idInputName": "ComponentId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"15": {
+							"position": {
+								"x": 0,
+								"y": 18,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ComponentId",
+									"value": {
+										"Name": "[parameters('AppInsightsNameInFunctionApp')]",
+										"SubscriptionId": "[subscription().subscriptionId]",
+										"ResourceGroup": "[resourceGroup().name]"
+									}
+								},
+								{
+									"name": "MetricsExplorerJsonDefinitionId",
+									"value": "InsightsTimelineMetrics"
+								},
+								{
+									"name": "TimeContext",
+									"value": {
+										"durationMs": 86400000,
+										"endTime": null,
+										"createdTime": "2018-03-28T12:31:06.381Z",
+										"isInitialTime": true,
+										"grain": 1,
+										"useDashboardTimeRange": false
+									}
+								},
+								{
+									"name": "Version",
+									"value": "1.0"
+								}],
+								"type": "Extension/AppInsightsExtension/Blade/GeneralAppOverview/Lens/ApplicationHealthLens/PartInstance/InsightsTimeline_MetricsExplorerPartReferenceOveriew",
+								"asset": {
+									"idInputName": "ComponentId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"16": {
+							"position": {
+								"x": 6,
+								"y": 18,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ComponentId",
+									"value": {
+										"Name": "[parameters('AppInsightsNameInFunctionApp')]",
+										"SubscriptionId": "[subscription().subscriptionId]",
+										"ResourceGroup": "[resourceGroup().name]"
+									}
+								},
+								{
+									"name": "MetricsExplorerJsonDefinitionId",
+									"value": "pinJson:?name={\n  \"version\": \"1.4.1\",\n  \"isCustomDataModel\": true,\n  \"items\": [\n    {\n      \"id\": \"90a7134d-9a38-4c25-88d3-a495209873eb\",\n      \"chartType\": \"Line\",\n      \"chartHeight\": 4,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry Failures\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-d0\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"magentaHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    },\n    {\n      \"id\": \"0c289098-88e8-4010-b212-546815cddf70\",\n      \"grouping\": {\n        \"kind\": \"ByDimension\",\n        \"dimension\": \"context.application.version\"\n      },\n      \"chartType\": \"Line\",\n      \"chartHeight\": 4,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry SuccessRate\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    }\n  ],\n  \"currentFilter\": {\n    \"eventTypes\": [\n      4,\n      1,\n      3,\n      5,\n      2,\n      6,\n      13,\n      8\n    ],\n    \"typeFacets\": {},\n    \"isPermissive\": false\n  },\n  \"jsonUri\": \"MetricsExplorerPinJsonDefinitionId - Dashboard.d0f9aefa-1b50-4662-a947-4095d0ea037d - Pinned from 'BlankChart'\"\n}"
+								},
+								{
+									"name": "BladeId",
+									"value": "[concat('Dashboard02', uniquestring(variables('dashboardName'), resourceGroup().id))]"
+								},
+								{
+									"name": "TimeContext",
+									"value": {
+										"durationMs": 86400000,
+										"endTime": null,
+										"createdTime": "2018-03-28T14:28:16.683Z",
+										"isInitialTime": false,
+										"grain": 1,
+										"useDashboardTimeRange": false
+									}
+								},
+								{
+									"name": "Version",
+									"value": "1.0"
+								},
+								{
+									"name": "DashboardTimeRange",
+									"value": {
+										"relative": {
+											"duration": 1440,
+											"timeUnit": 0
+										}
+									},
+									"isOptional": true
+								}],
+								"type": "Extension/AppInsightsExtension/PartType/MetricsExplorerOutsideMEBladePart",
+								"settings": {
+									"content": {
+										"metricsExplorerJson": "{\n  \"version\": \"1.4.1\",\n  \"isCustomDataModel\": true,\n  \"items\": [\n    {\n      \"id\": \"90a7134d-9a38-4c25-88d3-a495209873eb\",\n      \"chartType\": \"Line\",\n      \"chartHeight\": 3,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry Failures\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-d0\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"magentaHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    },\n    {\n      \"id\": \"0c289098-88e8-4010-b212-546815cddf70\",\n      \"grouping\": {\n        \"kind\": \"ByDimension\",\n        \"dimension\": \"context.application.version\"\n      },\n      \"chartType\": \"Line\",\n      \"chartHeight\": 2,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry SuccessRate\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    }\n  ],\n  \"currentFilter\": {\n    \"eventTypes\": [\n      4,\n      1,\n      3,\n      5,\n      2,\n      6,\n      13,\n      8\n    ],\n    \"typeFacets\": {},\n    \"isPermissive\": false\n  },\n  \"timeContext\": {\n    \"durationMs\": 86400000,\n    \"endTime\": null,\n    \"createdTime\": \"2018-03-28T14:28:16.683Z\",\n    \"isInitialTime\": false,\n    \"grain\": 1,\n    \"useDashboardTimeRange\": false\n  },\n  \"jsonUri\": \"MetricsExplorerPinJsonDefinitionId - Dashboard.d0f9aefa-1b50-4662-a947-4095d0ea037d - Pinned from 'BlankChart'\",\n  \"timeSource\": 0\n}"
+									}
+								},
+								"viewState": {
+									"content": {
+										"metricsExplorerJson": "{\n  \"version\": \"1.4.1\",\n  \"isCustomDataModel\": true,\n  \"items\": [\n    {\n      \"id\": \"90a7134d-9a38-4c25-88d3-a495209873eb\",\n      \"chartType\": \"Line\",\n      \"chartHeight\": 3,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry Failures\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-d0\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"magentaHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    },\n    {\n      \"id\": \"0c289098-88e8-4010-b212-546815cddf70\",\n      \"grouping\": {\n        \"kind\": \"ByDimension\",\n        \"dimension\": \"context.application.version\"\n      },\n      \"chartType\": \"Line\",\n      \"chartHeight\": 2,\n      \"metrics\": [\n        {\n          \"id\": \"HotTelemetry SuccessRate\",\n          \"metricAggregation\": \"Avg\",\n          \"color\": \"msportalfx-bgcolor-j1\"\n        }\n      ],\n      \"priorPeriod\": false,\n      \"clickAction\": {\n        \"defaultBlade\": \"SearchBlade\"\n      },\n      \"horizontalBars\": true,\n      \"showOther\": true,\n      \"aggregation\": \"Avg\",\n      \"percentage\": false,\n      \"palette\": \"greenHues\",\n      \"yAxisOption\": 0,\n      \"title\": \"\"\n    }\n  ],\n  \"currentFilter\": {\n    \"eventTypes\": [\n      4,\n      1,\n      3,\n      5,\n      2,\n      6,\n      13,\n      8\n    ],\n    \"typeFacets\": {},\n    \"isPermissive\": false\n  },\n  \"timeContext\": {\n    \"durationMs\": 86400000,\n    \"endTime\": null,\n    \"createdTime\": \"2018-03-28T14:28:16.683Z\",\n    \"isInitialTime\": false,\n    \"grain\": 1,\n    \"useDashboardTimeRange\": false\n  },\n  \"jsonUri\": \"MetricsExplorerPinJsonDefinitionId - Dashboard.d0f9aefa-1b50-4662-a947-4095d0ea037d - Pinned from 'BlankChart'\",\n  \"timeSource\": 0\n}"
+									}
+								},
+								"asset": {
+									"idInputName": "ComponentId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"17": {
+							"position": {
+								"x": 0,
+								"y": 22,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "ComponentId",
+									"value": {
+										"Name": "[parameters('AppInsightsNameInFunctionApp')]",
+										"SubscriptionId": "[subscription().subscriptionId]",
+										"ResourceGroup": "[resourceGroup().name]"
+									}
+								},
+								{
+									"name": "TimeContext",
+									"value": {
+										"durationMs": 86400000,
+										"endTime": null,
+										"createdTime": "2018-03-28T12:31:06.381Z",
+										"isInitialTime": true,
+										"grain": 1,
+										"useDashboardTimeRange": false
+									}
+								},
+								{
+									"name": "ChartJsonDefinitionId",
+									"value": "ServerRequestsByPerformanceMetric"
+								},
+								{
+									"name": "BladeId",
+									"value": "ServerRequestsByPerformanceGridPart"
+								},
+								{
+									"name": "Version",
+									"value": "1.1"
+								}],
+								"type": "Extension/AppInsightsExtension/Blade/GeneralAppOverview/Lens/ServerAndPerformanceChart/PartInstance/ServerRequestsByPerformanceGridReference",
+								"asset": {
+									"idInputName": "ComponentId",
+									"type": "ApplicationInsights"
+								}
+							}
+						},
+						"18": {
+							"position": {
+								"x": 0,
+								"y": 27,
+								"colSpan": 10,
+								"rowSpan": 2
+							},
+							"metadata": {
+								"inputs": [],
+								"type": "Extension[azure]/HubsExtension/PartType/MarkdownPart",
+								"settings": {
+									"content": {
+										"settings": {
+											"content": "[concat('<p style=\"font-size: 32px; color: white; background: linear-gradient(to bottom, #202020, #505050); padding: 5px\">&nbsp;&nbsp;Azure Stream Analytics - ', variables('StreamAnalyticsJobName'), ' - Metrics</p>')]",
+											"title": "",
+											"subtitle": ""
+										}
+									}
+								}
+							}
+						},
+						"19": {
+							"position": {
+								"x": 10,
+								"y": 27,
+								"colSpan": 2,
+								"rowSpan": 2
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "inferredBladePinPartInputs.id",
+									"value": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.StreamAnalytics/streamingjobs/', variables('StreamAnalyticsJobName'))]"
+								},
+								{
+									"name": "inferredBladePinPartInputs.menuid",
+									"isOptional": true
+								}],
+								"type": "Extension/HubsExtension/PartType/InferredBladePinPartResourceMenuBlade",
+								"asset": {
+									"idInputName": "id"
+								},
+								"defaultMenuItemId": "overview"
+							}
+						},
+						"20": {
+							"position": {
+								"x": 0,
+								"y": 29,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "options",
+									"value": {
+										"charts": [{
+											"metrics": [{
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.StreamAnalytics/streamingjobs/', variables('StreamAnalyticsJobName'))]"
+												},
+												"name": "InputEvents"
+											},
+											{
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.StreamAnalytics/streamingjobs/', variables('StreamAnalyticsJobName'))]"
+												},
+												"name": "OutputEvents"
+											},
+											{
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.StreamAnalytics/streamingjobs/', variables('StreamAnalyticsJobName'))]"
+												},
+												"name": "Errors"
+											}],
+											"title": "Monitoring",
+											"timespan": {
+												"relative": {
+													"durationMs": 3600000
+												}
+											}
+										}]
+									}
+								},
+								{
+									"name": "sharedTimeRange",
+									"binding": "timeRange",
+									"isOptional": true
+								}],
+								"type": "Extension/HubsExtension/PartType/MonitorChartPart",
+								"settings": {
+									
+								}
+							}
+						},
+						"21": {
+							"position": {
+								"x": 6,
+								"y": 29,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "options",
+									"value": {
+										"charts": [{
+											"metrics": [{
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.StreamAnalytics/streamingjobs/', variables('StreamAnalyticsJobName'))]"
+												},
+												"name": "ResourceUtilization"
+											}],
+											"title": "Resource utilization",
+											"timespan": {
+												"relative": {
+													"durationMs": 3600000
+												}
+											}
+										}]
+									}
+								},
+								{
+									"name": "sharedTimeRange",
+									"binding": "timeRange",
+									"isOptional": true
+								}],
+								"type": "Extension/HubsExtension/PartType/MonitorChartPart",
+								"settings": {
+									
+								}
+							}
+						},
+						"22": {
+							"position": {
+								"x": 0,
+								"y": 33,
+								"colSpan": 6,
+								"rowSpan": 4
+							},
+							"metadata": {
+								"inputs": [{
+									"name": "options",
+									"value": {
+										"charts": [{
+											"metrics": [{
+												"name": "Errors",
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+												},
+												"aggregationType": 4
+											},
+											{
+												"name": "DeserializationError",
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+												},
+												"aggregationType": 4
+											},
+											{
+												"name": "ConversionErrors",
+												"resourceMetadata": {
+													"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+												},
+												"aggregationType": 4
+											}],
+											"title": "Sum Runtime Errors, Sum Input Deserialization Errors, and Sum Data Conversion Errors",
+											"timeContext": {
+												"options": {
+													"grain": 1,
+													"appliedISOGrain": "PT15M"
+												},
+												"relative": {
+													"duration": 86400000
+												}
+											},
+											"itemDataModel": {
+												"id": "91052350-4CCB-47D3-BF6F-3F1FF0A6B1CC",
+												"chartHeight": 1,
+												"metrics": [{
+													"id": {
+														"resourceDefinition": {
+															"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+														},
+														"name": {
+															"id": "Errors",
+															"displayName": "Runtime Errors"
+														},
+														"kind": {
+															
+														}
+													},
+													"metricAggregation": 1,
+													"color": "#47BDF5"
+												},
+												{
+													"id": {
+														"resourceDefinition": {
+															"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+														},
+														"name": {
+															"id": "DeserializationError",
+															"displayName": "Input Deserialization Errors"
+														},
+														"kind": {
+															
+														}
+													},
+													"metricAggregation": 1,
+													"color": "#7E58FF"
+												},
+												{
+													"id": {
+														"resourceDefinition": {
+															"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+														},
+														"name": {
+															"id": "ConversionErrors",
+															"displayName": "Data Conversion Errors"
+														},
+														"kind": {
+															
+														}
+													},
+													"metricAggregation": 1,
+													"color": "#44F1C8"
+												}],
+												"priorPeriod": false,
+												"horizontalBars": true,
+												"showOther": false,
+												"aggregation": 1,
+												"percentage": false,
+												"palette": "multiColor",
+												"jsonDefinitionId": "7F25E276-C51C-41F4-AB3E-53A80207F11D",
+												"filters": {
+													"filterType": 0,
+													"id": "28886FB9-1B1B-461C-BEE7-97813E23D688",
+													"OperandFilters": [],
+													"LogicalOperator": 0
+												},
+												"yAxisOptions": {
+													"options": 1
+												},
+												"title": "Sum Runtime Errors, Sum Input Deserialization Errors, and Sum Data Conversion Errors",
+												"titleKind": "Auto",
+												"appliedISOGrain": "PT15M"
+											}
+										}],
+										"v2charts": true
+									}
+								},
+								{
+									"name": "sharedTimeRange",
+									"binding": "timeRange",
+									"isOptional": true
+								}],
+								"type": "Extension/HubsExtension/PartType/MonitorChartPart",
+								"settings": {
+									"content": {
+										"options": {
+											"charts": [{
+												"metrics": [{
+													"name": "Errors",
+													"resourceMetadata": {
+														"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+													},
+													"aggregationType": 4
+												},
+												{
+													"name": "DeserializationError",
+													"resourceMetadata": {
+														"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+													},
+													"aggregationType": 4
+												},
+												{
+													"name": "ConversionErrors",
+													"resourceMetadata": {
+														"resourceId": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+													},
+													"aggregationType": 4
+												}],
+												"title": "Runtime Errors, Input Deserialization Errors, and Data Conversion Errors",
+												"timeContext": {
+													"options": {
+														"grain": 1,
+														"appliedISOGrain": "PT15M"
+													},
+													"relative": {
+														"duration": 86400000
+													}
+												},
+												"itemDataModel": {
+													"id": "91052350-4CCB-47D3-BF6F-3F1FF0A6B1CC",
+													"chartHeight": 1,
+													"metrics": [{
+														"id": {
+															"resourceDefinition": {
+																"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+															},
+															"name": {
+																"id": "Errors",
+																"displayName": "Runtime Errors"
+															},
+															"kind": {
+																
+															}
+														},
+														"metricAggregation": 1,
+														"color": "#47BDF5"
+													},
+													{
+														"id": {
+															"resourceDefinition": {
+																"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+															},
+															"name": {
+																"id": "DeserializationError",
+																"displayName": "Input Deserialization Errors"
+															},
+															"kind": {
+																
+															}
+														},
+														"metricAggregation": 1,
+														"color": "#7E58FF"
+													},
+													{
+														"id": {
+															"resourceDefinition": {
+																"id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',resourceGroup().name,'/providers/Microsoft.StreamAnalytics/streamingjobs/',variables('StreamAnalyticsJobName'))]"
+															},
+															"name": {
+																"id": "ConversionErrors",
+																"displayName": "Data Conversion Errors"
+															},
+															"kind": {
+																
+															}
+														},
+														"metricAggregation": 1,
+														"color": "#44F1C8"
+													}],
+													"priorPeriod": false,
+													"horizontalBars": true,
+													"showOther": false,
+													"aggregation": 1,
+													"percentage": false,
+													"palette": "multiColor",
+													"jsonDefinitionId": "7F25E276-C51C-41F4-AB3E-53A80207F11D",
+													"filters": {
+														"filterType": 0,
+														"id": "28886FB9-1B1B-461C-BEE7-97813E23D688",
+														"OperandFilters": [],
+														"LogicalOperator": 0
+													},
+													"yAxisOptions": {
+														"options": 1
+													},
+													"title": "Runtime Errors, Input Deserialization Errors, and Data Conversion Errors",
+													"titleKind": "Custom",
+													"appliedISOGrain": "PT15M"
+												},
+												"disablePinning": true
+											}],
+											"v2charts": true
+										},
+										"sharedTimeRange": {
+											"relative": {
+												"duration": 24,
+												"timeUnit": 1
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"metadata": {
+				"model": {
+					"timeRange": {
+						"value": {
+							"relative": {
+								"duration": 24,
+								"timeUnit": 1
+							}
+						},
+						"type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+					}
+				}
+			}
+		}
+	  }
+	],
+	"outputs": {
+		
+	}
+}

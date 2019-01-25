@@ -1,0 +1,6 @@
+{
+  "eventHub": {
+    "maxBatchSize": 1000,
+    "prefetchCount": 2000
+  }
+}

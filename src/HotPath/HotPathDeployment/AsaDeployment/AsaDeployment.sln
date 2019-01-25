@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2037
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{151D2E53-A2C4-4D7D-83FE-D05416EBD58E}") = "AsaDeployment", "AsaDeployment\AsaDeployment.deployproj", "{F1A4A2FD-98EA-4FBC-864D-2EC5995EB999}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F1A4A2FD-98EA-4FBC-864D-2EC5995EB999}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F1A4A2FD-98EA-4FBC-864D-2EC5995EB999}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F1A4A2FD-98EA-4FBC-864D-2EC5995EB999}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F1A4A2FD-98EA-4FBC-864D-2EC5995EB999}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CF19A5C6-C9D9-44C8-9A99-A3562865FF28}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "iothub_name": {
+      "value": ""
+    },
+    "sku_name": {
+      "value": "S3"
+    },
+    "sku_units": {
+      "value": "1"
+    },
+    "d2c_partitions": {
+      "value": "32"
+    },
+    "features": {
+      "value": "None"
+    }
+  }
+}

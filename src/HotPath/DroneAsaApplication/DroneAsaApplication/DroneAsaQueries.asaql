@@ -1,0 +1,74 @@
+﻿------------------------------------------------------------
+--  Copyright (c) Microsoft Corporation.  All rights reserved.
+--  Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+------------------------------------------------------------
+
+WITH
+AvgTumblingWindows AS 
+(
+SELECT 'hotTemperature' AS message,
+          partitionid,
+           deliveryid,
+           deviceid,
+           AVG(temperature) AS [avgtemperature],
+           MAX(TRY_CAST(eventenqueuedutctime AS DATETIME)) AS lastenqueuedutctime ,
+           MAX(TRY_CAST(occurrenceutctime AS DATETIME)) AS lastoccurrenceutctime,
+           MAX(TRY_CAST(eventprocessedutcTime AS DATETIME)) AS lastprocessedutctime
+    FROM droneTelemetry
+    TIMESTAMP BY occurrenceutctime OVER deviceid,partitionid
+    PARTITION BY PartitionId
+    WHERE  sensortype='drone-state-sensor;v1'
+    GROUP BY TumblingWindow(second, 180),
+             deviceid,
+             deliveryid,
+             partitionid
+    HAVING   
+        [avgtemperature] >= 75
+
+),
+
+NoTelemetry AS 
+(
+    SELECT 'noTelemetry' AS message,
+           I1.partitionid AS partitionid,
+           I1.deliveryid AS deliveryid,
+           I1.deviceid AS deviceid,
+           I1.temperature AS avgtemperature,
+           I1.eventenqueuedutctime AS  lastenqueuedutctime,
+           I1.occurrenceutctime AS lastoccurrenceutctime,
+           I1.eventprocessedutcTime AS lastprocessedutctime
+    FROM droneTelemetry I1 TIMESTAMP BY occurrenceutctime OVER deviceid,partitionId PARTITION BY partitionId
+    LEFT OUTER JOIN droneTelemetry I2 TIMESTAMP BY occurrenceutctime OVER deviceid,partitionId PARTITION BY partitionId  
+    ON I1.deviceid=I2.deviceid 
+    AND I1.partitionid=I2.partitionid
+    AND DATEDIFF( minute , I1 , I2 ) BETWEEN 2 AND 10   
+    WHERE  I1.sensortype='drone-state-sensor;v1' AND
+    I2.deviceid IS NULL   
+)
+
+
+
+SELECT * 
+INTO hotTelemetry
+FROM AvgTumblingWindows
+PARTITION BY PartitionId
+
+SELECT *
+INTO alertHotTelemetry
+FROM AvgTumblingWindows
+PARTITION BY PartitionId
+WHERE 
+ISFIRST(mi, 5) OVER (PARTITION BY deviceid,partitionid) = 1
+
+
+ SELECT *
+    INTO alertNoTelemetry  
+    FROM NoTelemetry
+    PARTITION BY PartitionId 
+    WHERE 
+    ISFIRST(mi, 5) OVER (PARTITION BY deviceid,partitionid) = 1 
+  
+SELECT *
+    INTO absenceTelemetry  
+    FROM NoTelemetry 
+    PARTITION BY PartitionId

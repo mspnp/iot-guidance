@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>Fabrikam.DroneDelivery.IoT.DeviceSimulator</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices" Version="1.16.0-preview-004" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.17.0-preview-007" />
+    <PackageReference Include="Microsoft.Azure.IoTHub.IoTHubClient" Version="1.2.4" />
+    <PackageReference Include="Microsoft.Azure.IoTHub.MqttTransport" Version="1.2.4" />
+  </ItemGroup>
+
+</Project>

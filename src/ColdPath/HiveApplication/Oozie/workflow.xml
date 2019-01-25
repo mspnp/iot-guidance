@@ -1,0 +1,42 @@
+﻿<workflow-app name="useooziewf" xmlns="uri:oozie:workflow:0.2">
+    <start to = "RunEnrichTelemetryHiveScript"/>
+    <action name="RunEnrichTelemetryHiveScript">
+    <hive xmlns="uri:oozie:hive-action:0.2">
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+        <property>
+            <name>mapred.job.queue.name</name>
+            <value>${queueName}</value>
+        </property>
+        </configuration>
+        <script>${enrichtelemetryhiveScript}</script>
+    </hive>
+    <ok to="RunSummarizeDeliveriesHiveScript"/>
+    <error to="fail"/>
+    </action>
+    <action name="RunSummarizeDeliveriesHiveScript">
+    <hive xmlns="uri:oozie:hive-action:0.2">
+        <job-tracker>${jobTracker}</job-tracker>
+        <name-node>${nameNode}</name-node>
+        <configuration>
+        <property>
+            <name>mapred.job.queue.name</name>
+            <value>${queueName}</value>
+        </property>
+        </configuration>
+        <script>${summarizedeliverieshiveScript}</script>
+    </hive>
+    <ok to="end"/>
+      <!-- 
+      The next step in this workflow should be to persist the hive table data in a data store
+      that can be accessed if the Hadoop cluster is brought down for cost reasons.
+      https://docs.microsoft.com/en-us/azure/hdinsight/hdinsight-use-oozie-linux-mac
+      -->
+    <error to="fail"/>
+    </action>
+    <kill name="fail">
+    <message>Job failed, error message[${wf:errorMessage(wf:lastErrorNode())}] </message>
+    </kill>
+    <end name="end"/>
+</workflow-app>

@@ -1,0 +1,20 @@
+#  ------------------------------------------------------------
+#   Copyright (c) Microsoft Corporation.  All rights reserved.
+#   Licensed under the MIT License (MIT). See License.txt in the repo root for license information.
+#  ------------------------------------------------------------
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: deployment-configmap
+data:
+  storageadapter.webservice.url: "http://storageadapter.dronemgmt:9022/v1"
+  devicesimulation.twinreadwrite: "false"
+  general.logLevel: "Error"
+  devicesimulation.iotsdktimeout: "60000"
+  # Auth
+  security.auth.issuer: ""
+  security.auth.audience: ""
+  security.auth.required: "false"
+  security.cors.whitelist: ""
+  security.application.secret: ""

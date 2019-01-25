@@ -1,0 +1,14 @@
+version: '3.4'
+
+services:
+  warmpathui:
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - USER_SECRETS_ID=2bc2fa34-01d2-4afc-957b-4e6f1c82a773
+    ports:
+      - "80"
+    volumes:
+      - $APPDATA/Microsoft/UserSecrets/$USER_SECRETS_ID:/root/.microsoft/usersecrets/$USER_SECRETS_ID
+      # Workaround for https://github.com/Microsoft/DockerTools/issues/24
+      # See http://blog.matjanowski.pl/2017/11/18/managing-options-and-secrets-in-net-core-and-docker/
+

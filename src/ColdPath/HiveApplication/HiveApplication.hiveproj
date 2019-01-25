@@ -1,0 +1,49 @@
+﻿<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>447fa629-3a96-46ae-8b11-5ce92f46ae92</ProjectGuid>
+    <OutputType>File</OutputType>
+    <AssemblyName>Hive</AssemblyName>
+    <StartFile>Script.hql</StartFile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <Name>HiveApplication</Name>
+    <RootNamespace>HiveApplication1</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\Debug\</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>false</DebugSymbols>
+    <OutputPath>bin\Release\</OutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="HiveQueries\createrawtelemetrytable.hql">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="HiveQueries\enrichtelemetry.hql">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="HiveQueries\summarizedeliveries.hql">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="HiveQueries\telemetry.avsc">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Oozie\coordinator.xml">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Oozie\job.xml">
+      <SubType>Content</SubType>
+    </Content>
+    <Content Include="Oozie\workflow.xml">
+      <SubType>Content</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="HiveQueries" />
+    <Folder Include="Oozie" />
+  </ItemGroup>
+  <Import Project="$(AppData)\Microsoft\DataLake\MsBuild\1.0\Hive.targets" />
+</Project>

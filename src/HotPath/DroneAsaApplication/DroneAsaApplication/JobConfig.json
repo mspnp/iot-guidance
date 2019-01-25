@@ -1,0 +1,10 @@
+﻿{
+  "DataLocale": "en-US",
+  "OutputErrorPolicy": "Drop",
+  "EventsLateArrivalMaxDelayInSeconds": 900,
+  "EventsOutOfOrderMaxDelayInSeconds": 300,
+  "EventsOutOfOrderPolicy": "Drop",
+  "StreamingUnits": 6,
+  "CompatibilityLevel": "1.0",
+  "ScriptType": "JobConfig"
+}

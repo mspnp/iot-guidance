@@ -1,0 +1,29 @@
+﻿{
+  "EventHubProperties": null,
+  "BlobStorageProperties": null,
+  "SQLDatabaseProperties": null,
+  "TableStorageProperties": null,
+  "ServiceBusQueueProperties": null,
+  "ServiceBusTopicProperties": null,
+  "DocumentDbProperties": {
+    "AccountId": "accountid",
+    "AccountKey": null,
+    "CollectionNamePattern": "absenceTelemetrycollectionName",
+    "Database": "accountdatabase",
+    "DocumentId": "deliveryid",
+    "PartitionKey": null
+  },
+  "PowellBIProperties": null,
+  "AzureDataLakeStoreProperties": null,
+  "AzureFunctionProperties": null,
+  "DataSourceCredentialDomain": "18315aec-1505-4d3f-a836-6c8bb3d7b5a2.StreamAnalyticsCredential",
+  "Name": "AbsenceTelemetry",
+  "DataSourceType": "DocumentDB",
+  "Serialization": {
+    "Encoding": "UTF8",
+    "Type": "Json",
+    "FieldDelimiter": null,
+    "Format": "LineSeparated"
+  },
+  "ScriptType": "Output"
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "appName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the function app."
+      }
+    }
+  },
+  "variables": {
+    "cosmosDatabaseAccount": "[toLower(concat(parameters('appName'),'-db-', resourceGroup().name))]",
+    "appInsightsName": "[toLower(concat(parameters('appName'), '-telemetry-',resourceGroup().name))]",
+    "functionAppName": "[toLower(concat(parameters('appName'), '-function-',resourceGroup().name))]",
+    "hostingPlanName": "[toLower(concat(parameters('appName'), '-plan-',resourceGroup().name))]"
+  },
+  "resources": [
+    {
+      "apiVersion": "2015-04-08",
+      "kind": "GlobalDocumentDB",
+      "location": "[resourceGroup().location]",
+      "name": "[variables('cosmosDatabaseAccount')]",
+      "properties": {
+        "ipRangeFilter": "104.42.195.92,40.76.54.131,52.176.6.30,52.169.50.45,52.187.184.26,0.0.0.0",
+        "databaseAccountOfferType": "Standard"
+      },
+      "tags": {
+        "displayName": "HotPathCosmosDb"
+      },
+      "type": "Microsoft.DocumentDB/databaseAccounts"
+    },
+    {
+      "apiVersion": "2015-05-01",
+      "dependsOn": [],
+      "kind": "other",
+      "location": "[resourceGroup().location]",
+      "name": "[variables('appInsightsName')]",
+      "properties": {
+        "ApplicationId": "[variables('functionAppName')]"
+      },
+      "scale": null,
+      "tags": {},
+      "type": "microsoft.insights/components"
+    },
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2015-04-01",
+      "name": "[variables('hostingPlanName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "name": "[variables('hostingPlanName')]",
+        "computeMode": "Dynamic",
+        "sku": "Dynamic"
+      }
+    },
+    {
+      "apiVersion": "2016-08-01",
+      "type": "Microsoft.Web/sites",
+      "name": "[variables('functionAppName')]",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "HotPathFunction"
+      },
+      "kind": "functionapp",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "[resourceId('microsoft.insights/components', variables('appInsightsName'))]"
+      ],
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "beta"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(concat('microsoft.insights/components/', variables('appInsightsName'))).InstrumentationKey]"
+            },
+            {
+              "name": "ASA_BATCH",
+              "value": 100
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
