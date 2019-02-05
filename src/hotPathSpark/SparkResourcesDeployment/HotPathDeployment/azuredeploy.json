@@ -75,13 +75,25 @@
       "metadata": {
         "description": "Log analytics location"
       }
-    }
+    },
+		"storageAccountType": {
+			"type": "string",
+			"defaultValue": "Standard_LRS",
+			"allowedValues": [
+				"Standard_LRS",
+				"Standard_ZRS",
+				"Standard_GRS",
+				"Standard_RAGRS"
+			]
+		}    
   },
   "variables": {
     "cosmosDatabaseAccount": "[toLower(concat(parameters('appName'),'-db-', resourceGroup().name))]",
     "appInsightsName": "[toLower(concat(parameters('appName'), '-telemetry-',resourceGroup().name))]",
     "functionAppName": "[toLower(concat(parameters('appName'), '-function-',resourceGroup().name))]",
     "hostingPlanName": "[toLower(concat(parameters('appName'), '-plan-',resourceGroup().name))]",
+    "storageAccountName": "[concat(parameters('appName'), uniqueString(resourceGroup().id))]",
+    "storageAccountid": "[concat(resourceGroup().id,'/providers/','Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
     "dataBricksWksName": "[toLower(concat(parameters('appName'), '-spark-',resourceGroup().name))]",
     "logAnalyticsWksName": "[toLower(concat(parameters('appName'), '-plan-',resourceGroup().name))]",
     "managedResourceGroupName": "[concat('databricks-rg-', parameters('workspaceName'), '-', uniqueString(parameters('workspaceName'), resourceGroup().id))]",
@@ -103,6 +115,34 @@
       "type": "Microsoft.DocumentDB/databaseAccounts"
     },
     {
+      "name": "[variables('storageAccountName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-07-01",
+      "sku": {
+        "name": "[parameters('storageAccountType')]"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "warmPathStorage"
+      },
+      "kind": "Storage",
+      "properties": {
+        "supportsHttpsTrafficOnly": true,
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        }
+      }
+    },    
+    {
       "apiVersion": "2015-05-01",
       "dependsOn": [],
       "kind": "other",
@@ -113,7 +153,7 @@
       },
       "scale": null,
       "tags": {},
-      "type": "microsoft.insights/components"
+      "type": "Microsoft.Insights/components"
     },
     {
       "type": "Microsoft.Web/serverfarms",
@@ -145,7 +185,7 @@
           "appSettings": [
             {
               "name": "FUNCTIONS_EXTENSION_VERSION",
-              "value": "~1"
+              "value": "~2"
             },
             {
               "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
@@ -154,6 +194,22 @@
             {
               "name": "ASA_BATCH",
               "value": 100
+            },
+            {
+              "name": "AzureWebJobsDashboard",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(variables('functionAppName'))]"
             }
           ]
         }
@@ -166,7 +222,7 @@
       "location":  "[parameters('analyticsLocation') ]",
       "properties": {
         "sku": {
-          "Name": "[parameters('sku')]"
+          "name": "[parameters('sku')]"
         },
         "features": {
           "searchVersion": 1
@@ -204,7 +260,7 @@
         {
           "apiVersion": "2017-04-01",
           "name": "[parameters('eventHubName')]",
-          "type": "EventHubs",
+          "type": "eventhubs",
           "dependsOn": [
             "[concat('Microsoft.EventHub/namespaces/', variables('nameSpaceHubName'))]"
           ],
@@ -213,7 +269,7 @@
             {
               "apiVersion": "2017-04-01",
               "name": "[parameters('consumerGroupName')[0]]",
-              "type": "ConsumerGroups",
+              "type": "consumergroups",
               "dependsOn": [
                 "[parameters('eventHubName')]"
               ],
@@ -224,7 +280,7 @@
             {
               "apiVersion": "2017-04-01",
               "name": "[parameters('consumerGroupName')[1]]",
-              "type": "ConsumerGroups",
+              "type": "consumergroups",
               "dependsOn": [
                 "[parameters('eventHubName')]"
               ],
@@ -235,7 +291,7 @@
             {
               "apiVersion": "2017-04-01",
               "name": "[parameters('consumerGroupName')[2]]",
-              "type": "ConsumerGroups",
+              "type": "consumergroups",
               "dependsOn": [
                 "[parameters('eventHubName')]"
               ],

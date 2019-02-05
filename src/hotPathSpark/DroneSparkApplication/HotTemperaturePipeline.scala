@@ -186,7 +186,7 @@ val incomingStream = spark.readStream.format("eventhubs")
 
 val bodyStream = 
   incomingStream
- .select(unix_timestamp(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime"), "MM/dd/yyyy HH:mm:ss")
+ .select(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime")
          .cast(TimestampType).as("occurrenceUtcTime"),
          $"enqueuedTime".as("enqueuedUtcTime"),
          to_utc_timestamp(current_timestamp(),"MM/dd/yyyy HH:mm:ss").alias("processedUtcTime"),
@@ -290,7 +290,7 @@ val incomingStream = spark.readStream.format("eventhubs")
 
 val bodyStream = 
   incomingStream
- .select(unix_timestamp(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime"), "MM/dd/yyyy HH:mm:ss")
+ .select(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime")
          .cast(TimestampType).as("occurrenceUtcTime"),
          $"enqueuedTime".as("enqueuedUtcTime"),
          to_utc_timestamp(current_timestamp(),"MM/dd/yyyy HH:mm:ss").alias("processedUtcTime"),

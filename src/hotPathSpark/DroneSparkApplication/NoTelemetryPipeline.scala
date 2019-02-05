@@ -192,7 +192,7 @@ val rDeviceStream = spark.readStream.format("eventhubs")
 
 val lDeviceData = 
   lDeviceStream
- .select(unix_timestamp(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime"), "MM/dd/yyyy HH:mm:ss")
+ .select(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime")
          .cast(TimestampType).as("loccurrenceUtcTime"),
          $"enqueuedTime".as("lenqueuedUtcTime"),
          to_utc_timestamp(current_timestamp(),"MM/dd/yyyy HH:mm:ss").alias("lprocesstime"),
@@ -205,7 +205,7 @@ val lDeviceData =
 
 val rDeviceData = 
   rDeviceStream
- .select(unix_timestamp(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime"), "MM/dd/yyyy HH:mm:ss")
+ .select(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime")
          .cast(TimestampType).as("roccurrenceUtcTime"),
          $"enqueuedTime".as("renqueuedUtcTime"),
          to_utc_timestamp(current_timestamp(),"MM/dd/yyyy HH:mm:ss").alias("rprocesstime"),
@@ -322,7 +322,7 @@ val rDeviceStream = spark.readStream.format("eventhubs")
 
 val lDeviceData = 
   lDeviceStream
- .select(unix_timestamp(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime"), "MM/dd/yyyy HH:mm:ss")
+ .select(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime")
          .cast(TimestampType).as("loccurrenceUtcTime"),
          $"enqueuedTime".as("lenqueuedUtcTime"),
          to_utc_timestamp(current_timestamp(),"MM/dd/yyyy HH:mm:ss").alias("lprocesstime"),
@@ -335,7 +335,7 @@ val lDeviceData =
 
 val rDeviceData = 
   rDeviceStream
- .select(unix_timestamp(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime"), "MM/dd/yyyy HH:mm:ss")
+ .select(get_json_object(($"body").cast("string"), "$.occurrenceUtcTime")
          .cast(TimestampType).as("roccurrenceUtcTime"),
          $"enqueuedTime".as("renqueuedUtcTime"),
          to_utc_timestamp(current_timestamp(),"MM/dd/yyyy HH:mm:ss").alias("rprocesstime"),
