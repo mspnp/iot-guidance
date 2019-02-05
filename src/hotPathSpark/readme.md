@@ -41,7 +41,7 @@ Right click on project and select deploy.
 
 1. Open portal click on cosmosdb created on the resource group and click on keys, then click on copy primarary key( read and write) and endpoint.
 
-2. Or run the following az commands.
+2. Or run the following az commands:
 
 ```Bash
 az cosmosdb show --name <cosmos_db_account> -g <resource_group_name>
@@ -49,6 +49,7 @@ az cosmosdb show --name <cosmos_db_account> -g <resource_group_name>
 az cosmosdb list -o table
 az cosmosdb list-keys -n <cosmos_db_account> -g <resource_group_name>
 ```
+
  ## Create 2 collections one for hotTelemetry and other for absenceTelemetry
 1. Run the below command to create the database.
 
@@ -108,100 +109,102 @@ This step will build the jar for Cosmos writer and Log Analytics writer for the 
 
 Go to `src\HotPathSpark\DroneSparkApplication\DroneManagementWriter` and type:
 
- sbt assembly
+```
+sbt assembly
+```
 
-This will create the jar files with all dependencies in one jar
+This will create the jar files with all dependencies in one jar into folder `src\hotPathSpark\DroneSparkApplication\DroneManagementWriter\target\scala-2.11`.
 
 ## Install databricks CLI and set up authentication by following below instructions
 
  https://docs.azuredatabricks.net/user-guide/dev-tools/databricks-cli.html
 
-## Create the databricks scope and  secrets
+## Create the databricks scope and secrets
 
 ```Bash
 databricks secrets create-scope --scope hotpathscope
 
-databricks secrets put --scope hotpathscope --key alertingconnstring --string-value "youreventhubconnectionstring"
+databricks secrets put --scope hotpathscope --key alertingconnstring --string-value "event-hub-connection-string"
 
-databricks secrets put --scope hotpathscope --key cosmosdbendpoint --string-value "yourcosmosdbendpoint"
+databricks secrets put --scope hotpathscope --key cosmosdbendpoint --string-value "cosmosdb-endpoint"
 
-databricks secrets put --scope hotpathscope --key cosmosdbmasterkey --string-value "yourcosmosdbmasterkey"
+databricks secrets put --scope hotpathscope --key cosmosdbmasterkey --string-value "cosmosdb-primary-key"
 
-databricks secrets put --scope hotpathscope --key functionendpoint --string-value "yourfunctionendpoint"
+databricks secrets put --scope hotpathscope --key functionendpoint --string-value "hottelemetry-function-url"
 
-databricks secrets put --scope hotpathscope --key functionkey --string-value "yourfunctionkey"
+databricks secrets put --scope hotpathscope --key functionkey --string-value "hotetelemetry-function-key"
 
-databricks secrets put --scope hotpathscope --key iothubconnstring --string-value "youreventhubiothubconnstringcompatible"
+databricks secrets put --scope hotpathscope --key iothubconnstring --string-value "iot-hub-eventhub-compatible-connection-string"
 
 
-databricks secrets put --scope hotpathscope --key workspaceId --string-value "yourworkspaceId"
+databricks secrets put --scope hotpathscope --key workspaceId --string-value "log-analytics-workspace-id"
 
-databricks secrets put --scope hotpathscope --key omskey --string-value "youromskey"
+databricks secrets put --scope hotpathscope --key omskey --string-value "log-analytics-primary-key"
 
 ```
 
 
-## Create databricks cluster
-You can use the Portal:
+## Create a databricks cluster
 
-https://docs.databricks.com/user-guide/clusters/create.html
+You can use the Portal: https://docs.databricks.com/user-guide/clusters/create.html
 
-Or use cli commands:
+Or use cli commands: https://docs.databricks.com/api/latest/examples.html
 
-https://docs.databricks.com/api/latest/examples.html
+## Install Libraries in the cluster
 
-## Install Libraries in cluster
+- Shared libraries documentation: https://docs.databricks.com/user-guide/libraries.html
 
-# shared Libraries
+- Install Maven coordinates
 
-https://docs.databricks.com/user-guide/libraries.html
+    - Click on *Workspace*, right click on shared and select create library. Select maven as the library source.
+    - Install the maven coordinates specified below:
 
-Maven coordinates to Install
+        com.microsoft.azure:azure-cosmosdb-spark_2.2.0_2.11:1.1.1
 
-Right click on shared,select create library. On the drop down select maven coordinates
+        com.microsoft.azure:azure-eventhubs-spark_2.11:2.3.5
 
-Install below two maven coordinates. you can enter below entries in the text box
-and click create library
+    - Click on create and then install on cluster for each of the coordinates.
 
-com.microsoft.azure:azure-cosmosdb-spark_2.1.0_2.11:1.1.2
+- Upload jar
 
-com.microsoft.azure:azure-eventhubs-spark_2.11:2.3.2
+    - Right click on shared, select create library and select upload:
 
-Upload jars
-Right click on shared,select create library. On the drop down select upload jars
+    - Browse to the jar at `src\HotPathSpark\DroneSparkApplication\DroneManagementWriter\target\scala-2.11\DroneManagementWriter-assembly-0.1.jar`.
 
-Browse to below location `src\HotPathSpark\DroneSparkApplication\DroneManagementWriter\target\scala-2.11\DroneManagementWriter-assembly-0.1.jar`.
+    - Click on create and then install on cluster.
 
 ## Import notebooks
 
-follow the instructions to import the following notebooks located at `src\HotPath\DroneSparkApplication`.
+- Import the following notebooks located at `src\HotPathSpark\DroneSparkApplication`.
 
-AlertingPipeline.scala
-HotTemperaturePipeline.scala
-NoTelemetryPipeline.scala
+    AlertingPipeline.scala
+    HotTemperaturePipeline.scala
+    NoTelemetryPipeline.scala
+
+- Notebooks documentation: https://docs.databricks.com/user-guide/notebooks/index.html
 
 
-https://docs.databricks.com/user-guide/notebooks/index.html
+## Run notebooks
 
+- Open HotTemperaturePipeline.scala and NoTelemetryPipeline.scala by clicking them on the workspace.  replace in 4 places the name replacewitheventhubcompatiblename  with the event hub name compatible name of iot hub as in code snippet below:
 
-##Run notebooks
-Open HotTemperaturePipeline.html and NoTelemetryPipeline.html by clicking them on the workspace.  replace in 4 places the name replacewitheventhubcompatiblename  with the event hub name compatible name of iothub as in code snippet below:
+    .setEventHubName("replacewitheventhubcompatiblename")
 
-.setEventHubName("replacewitheventhubcompatiblename")
+- Open all notebooks and click run all.
 
-Open all notebooks and click run all.
+## Check telemetry in Log Analytics workspace
 
-##check telemetry in loganalytics workspace
+- Open log analytics resource, on *Connect a data source* section choose to connect to the *Azure Activity logs*.
 
-Open loganalytics resource then click on logsearch and open a query tab
+- Click on *Logs* and on run the following queries to get the input rows / sec processed rows /sec and the trigger latency execution in miliseconds:
 
-On the dashboard run below queries to get the input rows / sec processed rows /sec and the trigger latency execution in miliseconds. You can do the same for hotalertpipeline_CL notelpipeline_CL and notelalerting_CL.
+    hottemppipeline_CL
+    | where inputRowsPerSecond_d > 0
 
-hottemppipeline_CL
-| where inputRowsPerSecond_d > 0
+    hottemppipeline_CL
+    | where procRowsPerSecond_d > 0
 
-hottemppipeline_CL
-| where procRowsPerSecond_d > 0
+    hottemppipeline_CL
+    | where triggerExecution_d > 0
 
-hottemppipeline_CL
-| where triggerExecution_d > 0
+- You can do the same for hotalertpipeline_CL, notelpipeline_CL and notelalerting_CL.
