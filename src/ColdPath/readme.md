@@ -1,5 +1,7 @@
 # Deploy cold path analysis using HDInsight
 
+This guide assumes IoT Hub has been previously deployed. Otherwise follow [this guide](../../README.md)
+
 ## Step 1:
 
 Fill in the following parameters of src/ColdPath/ColdPathDeployment/azuredeploy.parameters.json:
@@ -22,29 +24,30 @@ az group deployment create -n <deployment-name> \
 Create a blob storage container named "telemetry" in the telemetry storage account created in step 1.
 
 ```bash
-az storage container create --name telemetry --account-name <YourTelemetryStorageAccountName> --account-key <YourTelemetryStorageAccountAccessKey>
+az storage container create --name telemetry --account-name <telemetry-storage-account-name> --account-key <telemetry-storage-access-key>
 ```
+
 ## Step 3
 Configure IoT Hub instance with a custom Azure Storage container endpoint pointing to the cold telemetry storage container created in step 2.  
 Message routing -> Custom endpoints -> Add -> Blob Storage -> Select telemetry storage connainter created in step 2.
 
-https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-endpoints#custom-endpoints
+More info: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-endpoints#custom-endpoints
 
 ## Step 4
 Configure IoT Hub instance with a default message route that sends device event messages to the default events endpoint.
 
 ```bash
-az iot hub update -n <Your-IoT-Hub> -g <Your-IoT-Hub-Resource-Group> --add properties.routing.routes "{'condition':'true', 'endpointNames':['events'], 'isEnabled':True, 'name':'defaulteventroute', 'source':'DeviceMessages'}"
+az iot hub update -n <iot-hub-name> -g <iot-hub-resource-group> --add properties.routing.routes "{'condition':'true', 'endpointNames':['events'], 'isEnabled':True, 'name':'defaulteventroute', 'source':'DeviceMessages'}"
 ```
 
 ## Step 5
 Configure IoT Hub instance with a custom route that sends device event messages to the custom storage endpoint created in step 3.
 
 ```bash
-az iot hub update -n <IoT-Hub-Name> -g <IoT-Hub-Resource-Group-Name> --add properties.routing.routes "{'condition':'true', 'endpointNames':['<Custom-Storage-Endpoint-Name>'], 'isEnabled':True, 'name':'storageroute', 'source':'DeviceMessages'}"
+az iot hub update -n <iot-hub-name> -g <iot-hub-resource-group-name> --add properties.routing.routes "{'condition':'true', 'endpointNames':['<custom-storage-endpoint-name>'], 'isEnabled':True, 'name':'storageroute', 'source':'DeviceMessages'}"
 ```
 
-https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-read-custom
+More info: https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-read-custom
 
 ## Step 6
 Upload src\ColdPath\HiveApplication\HiveQueries\telemetry.avsc schema to the cold telemetry blob container created in step 2.
