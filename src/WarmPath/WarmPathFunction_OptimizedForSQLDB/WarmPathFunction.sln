@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WarmPathFunction", "WarmPathFunction\WarmPathFunction.csproj", "{74D21916-61FD-4015-A588-852DFCA22FAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{74D21916-61FD-4015-A588-852DFCA22FAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74D21916-61FD-4015-A588-852DFCA22FAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74D21916-61FD-4015-A588-852DFCA22FAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74D21916-61FD-4015-A588-852DFCA22FAF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {31D53AAE-872E-47A1-B5DD-3AA970E3189F}
+	EndGlobalSection
+EndGlobal
