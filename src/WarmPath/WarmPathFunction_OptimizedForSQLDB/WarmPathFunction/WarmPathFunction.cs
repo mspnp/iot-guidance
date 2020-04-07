@@ -161,16 +161,13 @@ namespace WarmPathFunction
 
                 sqlDbLatency.Stop();
             }
-            catch (Exception e)
+            catch (SqlException sqlEx)
             {
-                if (e is SqlException sqlEx)
-                {
-                    log.Error($"Error processing message with err number {sqlEx.Number}. Exception was {sqlEx.Message}");
-                }
-                else
-                {
-                    log.Error($"Error processing message. Exception was {e.Message}");
-                }
+                log.Error($"Error processing message with err number {sqlEx.Number}. Exception was {sqlEx.ToString()}");
+            }
+            catch(Exception e)
+            {
+                log.Error($"Error processing message. Exception was {e.ToString()}");
             }
 
             return (long)sqlDbLatency
