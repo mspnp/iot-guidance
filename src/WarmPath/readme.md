@@ -26,7 +26,7 @@ Use the following steps to provision the warm path.
     - `cosmosDBCollection`: A name for the Cosmos DB collection name.
     - `appInsightsLocation`: Azure region for the Application Insights instance
 
-    For Azure SQL DBatabase, in the `/src/WarmPath/WarmPathDeployment_SqlDb` directory, open the `azuredeploy.parameters.json` file.
+    For Azure SQL Database, in the `/src/WarmPath/WarmPathDeployment_SqlDb` directory, open the `azuredeploy.parameters.json` file.
 
     - `appName`: A name for the Function app (of less than 11 characters of lowercase letter and numbers only).
     - `eventHubConnectionString`: The Event Hub-compatible endpoint connection string.
