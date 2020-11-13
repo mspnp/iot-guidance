@@ -21,6 +21,12 @@ spec:
     spec:
       containers:
       - name: storageadapter
+        # PRODUCTION READINESS CHANGE REQUIRED
+        # This image should be sourced from a non-public container registry, such as one
+        # you deploy specifically for your persistent test environment.
+        # az acr import --source azureiotpcs/pcs-storage-adapter-dotnet:testing -n <your-acr-instance-name>
+        # and then set this to
+        # image: <your-acr-instance-name>.azurecr.io/azureiotpcs/pcs-storage-adapter-dotnet:testing
         image: azureiotpcs/pcs-storage-adapter-dotnet:testing
         ports:
         - containerPort: 9022
