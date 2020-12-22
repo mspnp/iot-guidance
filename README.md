@@ -1,4 +1,8 @@
-# Introduction 
+## IOT Guidance
+
+> __Note__: As of December 10th 2020, Remote Monitoring solution accelerator is no longer supported. All supporting repositories have been archived. Check the [FAQ](https://docs.microsoft.com/en-us/azure/iot-accelerators/iot-accelerators-faq) to learn more.
+
+## Introduction 
 
 To explore the challenges of building an IoT application, we created a reference implementation called the Drone Delivery application. 
 
